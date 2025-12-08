@@ -1,0 +1,221 @@
+# Health Monitor Configuration Example
+
+server:
+  host: "0.0.0.0"
+  port: 8080
+  read_timeout: 15s
+  write_timeout: 15s
+  shutdown_timeout: 30s
+  enable_auth: false
+  # basic_auth_user: "admin"
+  # basic_auth_pass: "password"
+
+database:
+  type: "sqlite"
+  path: "./data/health-monitor.db"
+  max_open_conns: 25
+  max_idle_conns: 5
+  conn_max_lifetime: 5m
+
+logging:
+  level: "info"  # debug, info, warn, error
+  format: "json" # json, console
+  output: "stdout" # stdout, stderr, or file path
+
+retention:
+  check_results: 720h    # 30 days
+  incidents: 2160h       # 90 days
+  cleanup_interval: 24h  # daily cleanup
+
+targets:
+  # HTTP Health Check Example
+  - id: "example-api"
+    name: "Example API"
+    type: "http"
+    enabled: true
+    interval: "30s"
+    timeout: "10s"
+    description: "Production API health endpoint"
+    tags:
+      - "production"
+      - "api"
+    config:
+      url: "https://api.example.com/health"
+      method: "GET"
+      expected_status_code: 200
+      max_response_time_ms: 500
+      follow_redirects: true
+      validate_ssl: true
+      check_ssl_expiry: true
+      ssl_expiry_days: 30
+    alert_rules:
+      - name: "API Down"
+        enabled: true
+        consecutive_failures: 3
+        severity: "critical"
+        notifier_ids:
+          - "webhook-slack"
+          - "email-team"
+      - name: "Slow Response"
+        enabled: true
+        response_time_ms: 1000
+        severity: "warning"
+        notifier_ids:
+          - "email-team"
+
+  # HTTP POST Example with Headers
+  - id: "auth-endpoint"
+    name: "Authentication Endpoint"
+    type: "http"
+    enabled: true
+    interval: "1m"
+    timeout: "5s"
+    tags:
+      - "auth"
+      - "critical"
+    config:
+      url: "https://auth.example.com/api/v1/status"
+      method: "POST"
+      headers:
+        Authorization: "Bearer your-token-here"
+        Content-Type: "application/json"
+      body: '{"status": "check"}'
+      expected_status_code: 200
+    alert_rules:
+      - name: "Auth Service Down"
+        enabled: true
+        consecutive_failures: 2
+        severity: "critical"
+        notifier_ids:
+          - "telegram-alerts"
+
+  # TCP Port Check Example
+  - id: "database-port"
+    name: "Database Port"
+    type: "tcp"
+    enabled: true
+    interval: "1m"
+    timeout: "5s"
+    description: "PostgreSQL database availability"
+    tags:
+      - "database"
+    config:
+      host: "db.example.com"
+      port: 5432
+    alert_rules:
+      - name: "Database Unreachable"
+        enabled: true
+        consecutive_failures: 3
+        severity: "critical"
+        notifier_ids:
+          - "webhook-slack"
+
+  # DNS Check Example
+  - id: "dns-check"
+    name: "DNS Resolution"
+    type: "dns"
+    enabled: true
+    interval: "5m"
+    timeout: "10s"
+    description: "DNS A record check"
+    config:
+      domain: "example.com"
+      record_type: "A"
+      expected_ips:
+        - "93.184.216.34"
+      dns_server: "8.8.8.8"
+    alert_rules:
+      - name: "DNS Resolution Failed"
+        enabled: true
+        consecutive_failures: 2
+        severity: "warning"
+        notifier_ids:
+          - "email-team"
+
+  # ICMP/Ping Check Example
+  - id: "ping-gateway"
+    name: "Network Gateway"
+    type: "icmp"
+    enabled: true
+    interval: "30s"
+    timeout: "5s"
+    description: "Ping network gateway"
+    config:
+      host: "192.168.1.1"
+      packet_count: 3
+      max_rtt_ms: 100
+    alert_rules:
+      - name: "Gateway Unreachable"
+        enabled: true
+        consecutive_failures: 5
+        severity: "critical"
+        notifier_ids:
+          - "telegram-alerts"
+
+notifiers:
+  # Webhook Notifier (Slack, Discord, etc.)
+  - id: "webhook-slack"
+    type: "webhook"
+    enabled: true
+    config:
+      url: "https://hooks.slack.com/services/YOUR/WEBHOOK/URL"
+      method: "POST"
+      headers:
+        Content-Type: "application/json"
+      template: |
+        {
+          "text": "🚨 Alert: {{.TargetName}}",
+          "blocks": [
+            {
+              "type": "section",
+              "text": {
+                "type": "mrkdwn",
+                "text": "*{{.Severity}}*: {{.Message}}"
+              }
+            },
+            {
+              "type": "section",
+              "fields": [
+                {
+                  "type": "mrkdwn",
+                  "text": "*Target:*\n{{.TargetName}}"
+                },
+                {
+                  "type": "mrkdwn",
+                  "text": "*Time:*\n{{.CreatedAt}}"
+                }
+              ]
+            }
+          ]
+        }
+
+  # Email Notifier
+  - id: "email-team"
+    type: "email"
+    enabled: false  # Disabled by default
+    config:
+      smtp_host: "smtp.gmail.com"
+      smtp_port: 587
+      smtp_user: "your-email@example.com"
+      smtp_password: "your-app-password"
+      from: "health-monitor@example.com"
+      to:
+        - "team@example.com"
+        - "oncall@example.com"
+      subject_template: "[{{.Severity}}] {{.TargetName}} - {{.Type}}"
+
+  # Telegram Notifier
+  - id: "telegram-alerts"
+    type: "telegram"
+    enabled: false  # Disabled by default
+    config:
+      bot_token: "YOUR_BOT_TOKEN"
+      chat_ids:
+        - "-1001234567890"
+      message_template: |
+        🚨 *{{.Severity | upper}}*
+
+        *Target:* {{.TargetName}}
+        *Type:* {{.Type}}
+        *Message:* {{.Message}}
+        *Time:* {{.CreatedAt | formatTime}}

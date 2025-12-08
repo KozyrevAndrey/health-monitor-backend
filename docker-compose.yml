@@ -1,0 +1,72 @@
+version: '3.8'
+
+services:
+  health-monitor:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VERSION: ${VERSION:-dev}
+    container_name: health-monitor
+    image: health-monitor:latest
+    ports:
+      - "8080:8080"
+    volumes:
+      # Mount custom config
+      - ./configs:/configs:ro
+      # Persistent data directory
+      - ./data:/data
+      # Optional: mount custom config file
+      # - ./my-config.yaml:/etc/health-monitor/config.yaml:ro
+    environment:
+      # Override config via environment variables
+      - HEALTH_MONITOR_SERVER_HOST=0.0.0.0
+      - HEALTH_MONITOR_SERVER_PORT=8080
+      - HEALTH_MONITOR_LOGGING_LEVEL=info
+      - HEALTH_MONITOR_LOGGING_FORMAT=json
+      - HEALTH_MONITOR_DATABASE_PATH=/data/health-monitor.db
+      # Optional: enable authentication
+      # - HEALTH_MONITOR_SERVER_ENABLE_AUTH=true
+      # - HEALTH_MONITOR_SERVER_BASIC_AUTH_USER=admin
+      # - HEALTH_MONITOR_SERVER_BASIC_AUTH_PASS=password
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "/app/health-monitor", "--version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    networks:
+      - health-monitor-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Optional: Add PostgreSQL for production use
+  # postgres:
+  #   image: postgres:15-alpine
+  #   container_name: health-monitor-db
+  #   environment:
+  #     POSTGRES_DB: healthmonitor
+  #     POSTGRES_USER: healthmon
+  #     POSTGRES_PASSWORD: changeme
+  #   volumes:
+  #     - postgres-data:/var/lib/postgresql/data
+  #   ports:
+  #     - "5432:5432"
+  #   networks:
+  #     - health-monitor-network
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U healthmon"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+
+networks:
+  health-monitor-network:
+    driver: bridge
+
+# volumes:
+#   postgres-data:
