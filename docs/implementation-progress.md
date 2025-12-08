@@ -86,15 +86,38 @@
 
 ---
 
-## 📋 Planned (Фаза 3-7: Core Functionality)
+## ✅ Completed (Фаза 3: HTTP Checker)
 
-### Phase 3: Checker System
-- [ ] Checker registry (internal/checker/registry.go)
-- [ ] HTTP/HTTPS checker (internal/checker/http.go)
+### HTTP Checker Implementation
+- [x] Checker registry (internal/checker/registry.go)
+  - Thread-safe registration and retrieval
+  - List all registered checker types
+  - Default registry with HTTP checker
+- [x] HTTP/HTTPS checker (internal/checker/http.go)
   - Status code validation
   - Response time measurement
   - SSL certificate validation
-  - SSL expiry check
+  - SSL expiry check with configurable threshold
+  - Custom headers and HTTP methods
+  - Configurable redirects (follow/don't follow)
+  - Configurable SSL verification (skip for self-signed)
+  - Max response time warnings
+  - Rich metadata in results
+- [x] Comprehensive test suite (internal/checker/http_test.go)
+  - Success scenario test (real endpoint)
+  - Invalid URL test
+  - Wrong status code test
+  - Configuration validation tests
+  - All tests passing (verified with alfabank.far-harbor.ru)
+- [x] Integration with main.go
+  - Checker registry initialization
+  - Logging of registered checkers
+
+---
+
+## 📋 Planned (Фаза 4-7: Core Functionality)
+
+### Phase 4: Additional Checkers
 - [ ] TCP checker (internal/checker/tcp.go)
   - Port connectivity check
   - Connection timeout
@@ -104,9 +127,9 @@
 - [ ] ICMP checker (internal/checker/icmp.go)
   - Ping functionality
   - RTT measurement
-- [ ] Unit tests for all checkers
+- [ ] Unit tests for additional checkers
 
-### Phase 4: Scheduler System
+### Phase 5: Scheduler System
 - [ ] Worker pool implementation
 - [ ] Ticker-based scheduling
 - [ ] Target management (add/remove/update)
@@ -114,7 +137,7 @@
 - [ ] Concurrent check execution
 - [ ] Error handling and retry logic
 
-### Phase 5: Alert System
+### Phase 6: Alert System
 - [ ] AlertManager implementation
 - [ ] Alert rules evaluation
 - [ ] Consecutive failures tracking
@@ -123,7 +146,7 @@
 - [ ] Alert deduplication
 - [ ] Incident creation and tracking
 
-### Phase 6: Notification System
+### Phase 7: Notification System
 - [ ] Notifier registry
 - [ ] Webhook notifier (Slack, Discord, etc.)
   - Template support
@@ -138,7 +161,7 @@
   - Multiple chat support
   - Message formatting
 
-### Phase 7: HTTP API
+### Phase 8: HTTP API
 - [ ] Router setup (chi/gin)
 - [ ] Middleware
   - Logging
@@ -158,7 +181,7 @@
 
 ---
 
-## 🎯 Future Enhancements (Фаза 8+)
+## 🎯 Future Enhancements (Фаза 9+)
 
 ### Web Interface
 - [ ] Dashboard page
@@ -197,14 +220,15 @@
 
 ## 📊 Current Status
 
-**Overall Progress: 40%**
+**Overall Progress: 45%**
 
 - ✅ Infrastructure: 100%
 - ✅ Domain Models: 100%
 - ✅ Configuration: 100%
 - ✅ Logging: 100%
 - ✅ Storage: 100%
-- 🔄 Checkers: 0% (In Progress)
+- ✅ HTTP Checker: 100%
+- ⏳ Additional Checkers: 0%
 - ⏳ Scheduler: 0%
 - ⏳ Alerts: 0%
 - ⏳ Notifiers: 0%
@@ -218,11 +242,12 @@
 ## 🚀 Next Steps
 
 1. **✅ DONE: Storage Layer** - Migrations and repositories implemented
-2. **🔄 IN PROGRESS: HTTP Checker** - Start with the most common check type
-3. **Checker Registry** - Register and manage different checker types
-4. **Basic Scheduler** - Simple ticker-based implementation
-5. **Webhook Notifier** - Easiest notifier to implement
-6. **HTTP API** - Basic endpoints for monitoring
+2. **✅ DONE: HTTP Checker** - Fully implemented with SSL validation
+3. **Scheduler System** - Implement periodic check execution
+4. **Alert Manager** - Process check results and trigger alerts
+5. **Webhook Notifier** - Send notifications (Slack, Discord, etc.)
+6. **HTTP API** - REST endpoints for management
+7. **Additional Checkers** - TCP, DNS, ICMP support
 
 ---
 

@@ -3,8 +3,8 @@
 # Build stage
 FROM golang:1.24.11-alpine AS builder
 
-# Install build dependencies
-RUN apk add --no-cache git make ca-certificates tzdata
+# Install build dependencies including gcc for CGO
+RUN apk add --no-cache git make ca-certificates tzdata gcc musl-dev
 
 # Set working directory
 WORKDIR /build
@@ -23,7 +23,7 @@ ARG VERSION=dev
 
 RUN BUILD_TIME=$(date -u '+%Y-%m-%d_%H:%M:%S') && \
     GIT_COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown") && \
-    CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
+    CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build \
     -ldflags "-s -w -X main.Version=${VERSION} -X main.BuildTime=${BUILD_TIME} -X main.GitCommit=${GIT_COMMIT}" \
     -o health-monitor \
     ./cmd/server

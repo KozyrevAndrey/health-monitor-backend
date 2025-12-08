@@ -40,7 +40,7 @@ targets:
       - "production"
       - "api"
     config:
-      url: "https://api.example.com/health"
+      url: "https://alfabank.far-harbor.ru/"
       method: "GET"
       expected_status_code: 200
       max_response_time_ms: 500
