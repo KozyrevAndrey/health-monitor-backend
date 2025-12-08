@@ -9,6 +9,7 @@ import (
 	"syscall"
 
 	"github.com/rs/zerolog"
+	"health-monitor/internal/checker"
 	"health-monitor/internal/storage"
 	"health-monitor/pkg/config"
 	"health-monitor/pkg/logger"
@@ -104,17 +105,17 @@ func run(ctx context.Context, cfg *config.Config, log zerolog.Logger) error {
 
 	log.Info().Msg("Storage layer initialized")
 
-	// TODO: Initialize remaining components
-	// - Checker registry
-	// - Scheduler
-	// - Alert manager
-	// - HTTP server
-
-	// For now, just log that we're ready
+	checkerRegistry := checker.NewDefaultRegistry()
 	log.Info().
-		Interface("target_repo", targetRepo != nil).
-		Interface("check_result_repo", checkResultRepo != nil).
-		Interface("incident_repo", incidentRepo != nil).
+		Int("checkers", len(checkerRegistry.List())).
+		Interface("types", checkerRegistry.List()).
+		Msg("Checker registry initialized")
+
+	log.Info().
+		Bool("target_repo", targetRepo != nil).
+		Bool("check_result_repo", checkResultRepo != nil).
+		Bool("incident_repo", incidentRepo != nil).
+		Bool("checker_registry", checkerRegistry != nil).
 		Msg("All components initialized successfully")
 
 	// Wait for shutdown signal
