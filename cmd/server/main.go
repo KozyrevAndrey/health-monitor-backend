@@ -10,6 +10,7 @@ import (
 
 	"github.com/rs/zerolog"
 	"health-monitor/internal/checker"
+	"health-monitor/internal/scheduler"
 	"health-monitor/internal/storage"
 	"health-monitor/pkg/config"
 	"health-monitor/pkg/logger"
@@ -111,23 +112,51 @@ func run(ctx context.Context, cfg *config.Config, log zerolog.Logger) error {
 		Interface("types", checkerRegistry.List()).
 		Msg("Checker registry initialized")
 
+	sched := scheduler.New(checkerRegistry, checkResultRepo, log)
+
+	targets, err := scheduler.LoadTargetsFromConfig(cfg.Targets)
+	if err != nil {
+		return fmt.Errorf("failed to load targets from config: %w", err)
+	}
+
+	log.Info().Int("targets", len(targets)).Msg("Loaded targets from configuration")
+
+	if err := sched.Start(ctx); err != nil {
+		return fmt.Errorf("failed to start scheduler: %w", err)
+	}
+	defer func() {
+		if err := sched.Stop(); err != nil {
+			log.Error().Err(err).Msg("Failed to stop scheduler")
+		}
+	}()
+
+	for _, target := range targets {
+		if err := targetRepo.Create(ctx, target); err != nil {
+			log.Warn().
+				Err(err).
+				Str("target_id", target.ID).
+				Msg("Failed to save target to database (might already exist)")
+		}
+
+		if err := sched.AddTarget(target); err != nil {
+			log.Error().
+				Err(err).
+				Str("target_id", target.ID).
+				Msg("Failed to add target to scheduler")
+		}
+	}
+
 	log.Info().
 		Bool("target_repo", targetRepo != nil).
 		Bool("check_result_repo", checkResultRepo != nil).
 		Bool("incident_repo", incidentRepo != nil).
 		Bool("checker_registry", checkerRegistry != nil).
+		Bool("scheduler", sched.IsRunning()).
 		Msg("All components initialized successfully")
 
-	// Wait for shutdown signal
 	<-ctx.Done()
 
 	log.Info().Msg("Shutdown signal received, starting graceful shutdown...")
-
-	// Graceful shutdown sequence:
-	// TODO: 1. Stop accepting new HTTP requests
-	// TODO: 2. Stop scheduler (no new checks)
-	// TODO: 3. Wait for active checks to complete
-	// 4. Close database connections (handled by defer above)
 
 	log.Info().Msg("Graceful shutdown completed")
 
