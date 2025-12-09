@@ -115,9 +115,36 @@
 
 ---
 
-## 📋 Planned (Фаза 4-7: Core Functionality)
+## ✅ Completed (Фаза 4: Scheduler System)
 
-### Phase 4: Additional Checkers
+### Scheduler Implementation
+- [x] Scheduler core (internal/scheduler/scheduler.go)
+  - Ticker-based scheduling with independent intervals per target
+  - Concurrent task execution with goroutines
+  - Thread-safe task management (sync.RWMutex)
+  - AddTarget, RemoveTarget, UpdateTarget operations
+  - Graceful shutdown with WaitGroup
+  - Automatic check execution and result storage
+- [x] Target loader (internal/scheduler/loader.go)
+  - Load targets from configuration
+  - Parse duration strings (interval, timeout)
+  - Convert config to domain models
+- [x] Integration with main application
+  - Auto-load targets from YAML config
+  - Save targets to database
+  - Execute checks according to schedules
+  - Full lifecycle management (start/stop)
+- [x] Testing and verification
+  - Tested with real endpoints
+  - Multiple targets with different intervals (30s, 60s)
+  - Results saved to database
+  - Graceful shutdown verified
+
+---
+
+## 📋 Planned (Фаза 5-8: Core Functionality)
+
+### Phase 5: Additional Checkers
 - [ ] TCP checker (internal/checker/tcp.go)
   - Port connectivity check
   - Connection timeout
@@ -128,14 +155,6 @@
   - Ping functionality
   - RTT measurement
 - [ ] Unit tests for additional checkers
-
-### Phase 5: Scheduler System
-- [ ] Worker pool implementation
-- [ ] Ticker-based scheduling
-- [ ] Target management (add/remove/update)
-- [ ] Graceful shutdown support
-- [ ] Concurrent check execution
-- [ ] Error handling and retry logic
 
 ### Phase 6: Alert System
 - [ ] AlertManager implementation
@@ -220,7 +239,7 @@
 
 ## 📊 Current Status
 
-**Overall Progress: 45%**
+**Overall Progress: 50%**
 
 - ✅ Infrastructure: 100%
 - ✅ Domain Models: 100%
@@ -228,8 +247,8 @@
 - ✅ Logging: 100%
 - ✅ Storage: 100%
 - ✅ HTTP Checker: 100%
+- ✅ Scheduler: 100%
 - ⏳ Additional Checkers: 0%
-- ⏳ Scheduler: 0%
 - ⏳ Alerts: 0%
 - ⏳ Notifiers: 0%
 - ⏳ HTTP API: 0%
@@ -243,10 +262,10 @@
 
 1. **✅ DONE: Storage Layer** - Migrations and repositories implemented
 2. **✅ DONE: HTTP Checker** - Fully implemented with SSL validation
-3. **Scheduler System** - Implement periodic check execution
-4. **Alert Manager** - Process check results and trigger alerts
+3. **✅ DONE: Scheduler** - Periodic check execution with concurrent tasks
+4. **Alert Manager** - Process check results and trigger alerts (consecutive failures, response time, SSL expiry)
 5. **Webhook Notifier** - Send notifications (Slack, Discord, etc.)
-6. **HTTP API** - REST endpoints for management
+6. **HTTP API** - REST endpoints for management and monitoring
 7. **Additional Checkers** - TCP, DNS, ICMP support
 
 ---

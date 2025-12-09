@@ -4,16 +4,24 @@ A lightweight, extensible, self-hosted monitoring system for tracking the availa
 
 ## Features
 
-- Lightweight (single Go binary)
-- Extensible architecture
-- Multiple check types (HTTP, TCP, DNS, ICMP)
+### Currently Available ✅
+- **Lightweight** - single Go binary (~15MB)
+- **HTTP/HTTPS monitoring** - with SSL validation and expiry checking
+- **Flexible scheduling** - independent intervals per target
+- **SQLite storage** - automatic migrations and data retention
+- **YAML configuration** - with environment variable overrides
+- **Structured logging** - JSON and console formats
+- **Graceful shutdown** - proper cleanup of all resources
+- **Docker support** - multi-stage builds with Alpine
+- **Clean Architecture** - fully testable and extensible
+
+### Coming Soon 🚧
+- Multiple check types (TCP, DNS, ICMP)
+- Alert management (consecutive failures, response time)
 - Flexible notification system (Webhook, Email, Telegram)
+- HTTP API (REST endpoints)
 - Simple web interface
 - Real-time updates via Server-Sent Events
-- Low resource footprint
-- YAML-based configuration
-- Graceful shutdown
-- Docker support
 
 ## Quick Start
 
@@ -330,19 +338,39 @@ The application exposes a REST API for programmatic access.
 
 ## Roadmap
 
-- [x] Basic infrastructure setup
-- [x] Configuration system
-- [x] Logging system
-- [ ] HTTP checker implementation
-- [ ] SQLite storage layer
-- [ ] Basic scheduler
-- [ ] Webhook notifier
-- [ ] Simple web UI
-- [ ] Real-time updates (SSE)
+**Progress: 50%**
+
+### Core Features (Phase 1-4) - Completed
+- [x] Basic infrastructure setup (Makefile, Docker, CI/CD)
+- [x] Configuration system (Viper with YAML and env variables)
+- [x] Logging system (zerolog with structured logging)
+- [x] Domain models and interfaces (Clean Architecture)
+- [x] SQLite storage layer (GORM with auto-migration)
+  - Targets, check results, incidents repositories
+  - Statistics and history queries
+- [x] HTTP/HTTPS checker implementation
+  - Status code validation
+  - Response time measurement
+  - SSL certificate validation and expiry checking
+- [x] Scheduler system
+  - Ticker-based periodic checks
+  - Concurrent execution
+  - Graceful shutdown
+
+### In Progress (Phase 5-6)
+- [ ] Alert manager (consecutive failures detection)
+- [ ] Incident tracking and management
+- [ ] Webhook notifier (Slack, Discord)
+
+### Planned (Phase 7+)
 - [ ] Additional checkers (TCP, DNS, ICMP)
+- [ ] HTTP API (REST endpoints)
+- [ ] Simple web UI (dashboard)
+- [ ] Real-time updates (Server-Sent Events)
 - [ ] Additional notifiers (Email, Telegram)
 - [ ] PostgreSQL support
 - [ ] Advanced alerting rules
+- [ ] Multi-user support and RBAC
 
 ## Contributing
 
