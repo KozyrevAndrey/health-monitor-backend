@@ -142,6 +142,40 @@
 
 ---
 
+## ✅ Completed (Фаза 5-6: Alert System)
+
+### Alert Manager Implementation
+- [x] AlertManager core (internal/alerting/manager.go)
+  - Thread-safe state tracking per target
+  - Consecutive failures/successes counting
+  - Alert rule evaluation engine
+  - Incident creation and resolution
+  - Alert deduplication with cooldown periods
+- [x] Alert rule engine
+  - Consecutive failures detection (default: 3 failures)
+  - Response time threshold alerts (default: 5000ms)
+  - SSL certificate expiry warnings (default: 30 days)
+  - Target DOWN/UP transition alerts
+- [x] Incident management
+  - Automatic incident creation on first failure
+  - Failure count tracking
+  - Automatic resolution on recovery
+  - Last error tracking
+- [x] Notifier integration
+  - Notifier registry for pluggable notification channels
+  - Alert broadcasting to all registered notifiers
+- [x] Integration with scheduler
+  - Check results automatically processed by AlertManager
+  - Real-time alert evaluation after each check
+- [x] Comprehensive test suite (internal/alerting/manager_test.go)
+  - Incident creation and resolution tests
+  - Consecutive failures tracking tests
+  - State management tests
+  - Alert creation tests (DOWN, UP, slow response, SSL expiry)
+  - All 8 tests passing
+
+---
+
 ## 📋 Planned (Фаза 5-8: Core Functionality)
 
 ### Phase 5: Additional Checkers
@@ -156,17 +190,7 @@
   - RTT measurement
 - [ ] Unit tests for additional checkers
 
-### Phase 6: Alert System
-- [ ] AlertManager implementation
-- [ ] Alert rules evaluation
-- [ ] Consecutive failures tracking
-- [ ] Response time alerts
-- [ ] SSL expiry alerts
-- [ ] Alert deduplication
-- [ ] Incident creation and tracking
-
-### Phase 7: Notification System
-- [ ] Notifier registry
+### Phase 6: Notification System
 - [ ] Webhook notifier (Slack, Discord, etc.)
   - Template support
   - Custom headers
@@ -239,7 +263,7 @@
 
 ## 📊 Current Status
 
-**Overall Progress: 50%**
+**Overall Progress: 60%**
 
 - ✅ Infrastructure: 100%
 - ✅ Domain Models: 100%
@@ -248,8 +272,8 @@
 - ✅ Storage: 100%
 - ✅ HTTP Checker: 100%
 - ✅ Scheduler: 100%
+- ✅ Alert Manager: 100%
 - ⏳ Additional Checkers: 0%
-- ⏳ Alerts: 0%
 - ⏳ Notifiers: 0%
 - ⏳ HTTP API: 0%
 - ⏳ Web UI: 0%
@@ -263,8 +287,8 @@
 1. **✅ DONE: Storage Layer** - Migrations and repositories implemented
 2. **✅ DONE: HTTP Checker** - Fully implemented with SSL validation
 3. **✅ DONE: Scheduler** - Periodic check execution with concurrent tasks
-4. **Alert Manager** - Process check results and trigger alerts (consecutive failures, response time, SSL expiry)
-5. **Webhook Notifier** - Send notifications (Slack, Discord, etc.)
+4. **✅ DONE: Alert Manager** - Alert rules, incident tracking, and notification system
+5. **Webhook Notifier** - Send notifications to Slack, Discord, etc.
 6. **HTTP API** - REST endpoints for management and monitoring
 7. **Additional Checkers** - TCP, DNS, ICMP support
 

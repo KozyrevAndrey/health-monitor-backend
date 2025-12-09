@@ -9,6 +9,7 @@ import (
 	"syscall"
 
 	"github.com/rs/zerolog"
+	"health-monitor/internal/alerting"
 	"health-monitor/internal/checker"
 	"health-monitor/internal/scheduler"
 	"health-monitor/internal/storage"
@@ -112,7 +113,10 @@ func run(ctx context.Context, cfg *config.Config, log zerolog.Logger) error {
 		Interface("types", checkerRegistry.List()).
 		Msg("Checker registry initialized")
 
-	sched := scheduler.New(checkerRegistry, checkResultRepo, log)
+	alertManager := alerting.NewManager(targetRepo, checkResultRepo, incidentRepo, log)
+	log.Info().Msg("Alert manager initialized")
+
+	sched := scheduler.New(checkerRegistry, checkResultRepo, alertManager, log)
 
 	targets, err := scheduler.LoadTargetsFromConfig(cfg.Targets)
 	if err != nil {
@@ -151,6 +155,7 @@ func run(ctx context.Context, cfg *config.Config, log zerolog.Logger) error {
 		Bool("check_result_repo", checkResultRepo != nil).
 		Bool("incident_repo", incidentRepo != nil).
 		Bool("checker_registry", checkerRegistry != nil).
+		Bool("alert_manager", alertManager != nil).
 		Bool("scheduler", sched.IsRunning()).
 		Msg("All components initialized successfully")
 

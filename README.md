@@ -14,10 +14,11 @@ A lightweight, extensible, self-hosted monitoring system for tracking the availa
 - **Graceful shutdown** - proper cleanup of all resources
 - **Docker support** - multi-stage builds with Alpine
 - **Clean Architecture** - fully testable and extensible
+- **Alert management** - consecutive failures, response time, SSL expiry detection
+- **Incident tracking** - automatic creation and resolution
 
 ### Coming Soon 🚧
 - Multiple check types (TCP, DNS, ICMP)
-- Alert management (consecutive failures, response time)
 - Flexible notification system (Webhook, Email, Telegram)
 - HTTP API (REST endpoints)
 - Simple web interface
@@ -338,9 +339,9 @@ The application exposes a REST API for programmatic access.
 
 ## Roadmap
 
-**Progress: 50%**
+**Progress: 60%**
 
-### Core Features (Phase 1-4) - Completed
+### Core Features (Phase 1-6) - Completed
 - [x] Basic infrastructure setup (Makefile, Docker, CI/CD)
 - [x] Configuration system (Viper with YAML and env variables)
 - [x] Logging system (zerolog with structured logging)
@@ -356,10 +357,15 @@ The application exposes a REST API for programmatic access.
   - Ticker-based periodic checks
   - Concurrent execution
   - Graceful shutdown
+- [x] Alert manager
+  - Consecutive failures detection (default: 3)
+  - Response time threshold alerts (default: 5s)
+  - SSL certificate expiry warnings (default: 30 days)
+  - DOWN/UP transition alerts
+  - Incident tracking and automatic resolution
+  - Alert deduplication with cooldown periods
 
-### In Progress (Phase 5-6)
-- [ ] Alert manager (consecutive failures detection)
-- [ ] Incident tracking and management
+### In Progress (Phase 7-8)
 - [ ] Webhook notifier (Slack, Discord)
 
 ### Planned (Phase 7+)

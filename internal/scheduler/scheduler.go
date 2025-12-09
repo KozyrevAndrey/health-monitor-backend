@@ -13,6 +13,7 @@ import (
 type Scheduler struct {
 	checkerRegistry domain.CheckerRegistry
 	checkResultRepo domain.CheckResultRepository
+	alertManager    domain.AlertManager
 	log             zerolog.Logger
 
 	mu      sync.RWMutex
@@ -30,11 +31,13 @@ type task struct {
 func New(
 	checkerRegistry domain.CheckerRegistry,
 	checkResultRepo domain.CheckResultRepository,
+	alertManager domain.AlertManager,
 	log zerolog.Logger,
 ) *Scheduler {
 	return &Scheduler{
 		checkerRegistry: checkerRegistry,
 		checkResultRepo: checkResultRepo,
+		alertManager:    alertManager,
 		log:             log,
 		tasks:           make(map[string]*task),
 	}
@@ -203,6 +206,15 @@ func (s *Scheduler) performCheck(ctx context.Context, target *domain.Target, che
 			Str("target_id", target.ID).
 			Msg("Failed to save check result")
 		return
+	}
+
+	if s.alertManager != nil {
+		if err := s.alertManager.ProcessCheckResult(checkCtx, result); err != nil {
+			s.log.Error().
+				Err(err).
+				Str("target_id", target.ID).
+				Msg("Failed to process check result in alert manager")
+		}
 	}
 
 	s.log.Info().
