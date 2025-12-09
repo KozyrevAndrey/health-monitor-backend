@@ -196,6 +196,8 @@ func loadNotifiers(cfg *config.Config, alertManager domain.AlertManager, log zer
 		switch notifierCfg.Type {
 		case "telegram":
 			n, err = notifier.NewTelegramNotifier(notifierCfg.Config, log)
+		case "email":
+			n, err = notifier.NewEmailNotifier(notifierCfg.Config, log)
 		default:
 			log.Warn().
 				Str("id", notifierCfg.ID).

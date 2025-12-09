@@ -17,10 +17,11 @@ A lightweight, extensible, self-hosted monitoring system for tracking the availa
 - **Alert management** - consecutive failures, response time, SSL expiry detection
 - **Incident tracking** - automatic creation and resolution
 - **Telegram notifications** - rich Markdown messages with icons and metadata
+- **Email notifications** - HTML and plain text with SMTP support
 
 ### Coming Soon 🚧
 - Multiple check types (TCP, DNS, ICMP)
-- Additional notifiers (Webhook, Email)
+- Additional notifiers (Webhook)
 - HTTP API (REST endpoints)
 - Simple web interface
 - Real-time updates via Server-Sent Events
@@ -340,7 +341,7 @@ The application exposes a REST API for programmatic access.
 
 ## Roadmap
 
-**Progress: 65%**
+**Progress: 70%**
 
 ### Core Features (Phase 1-7) - Completed
 - [x] Basic infrastructure setup (Makefile, Docker, CI/CD)
@@ -371,9 +372,15 @@ The application exposes a REST API for programmatic access.
   - Rich Markdown formatting with icons
   - Alert type-specific icons (🔴 DOWN, 🟢 UP, 🐌 slow, 🔐 SSL)
   - Metadata and timestamp display
+- [x] Email notifier
+  - SMTP support with TLS/SSL
+  - HTML and plain text email formats
+  - Multiple recipients support
+  - Rich HTML templates with severity colors
+  - Multipart/alternative MIME format
 
 ### In Progress (Phase 8+)
-- [ ] Additional notifiers (Webhook, Email)
+- [ ] Additional notifiers (Webhook)
 
 ### Planned (Phase 7+)
 - [ ] Additional checkers (TCP, DNS, ICMP)

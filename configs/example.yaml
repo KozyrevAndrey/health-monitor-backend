@@ -192,17 +192,17 @@ notifiers:
   # Email Notifier
   - id: "email-team"
     type: "email"
-    enabled: false  # Disabled by default
+    enabled: false  # Disabled by default - configure your SMTP settings to enable
     config:
       smtp_host: "smtp.gmail.com"
       smtp_port: 587
       smtp_user: "your-email@example.com"
-      smtp_password: "your-app-password"
+      smtp_password: "your-app-password"  # For Gmail, use App Password
       from: "health-monitor@example.com"
       to:
         - "team@example.com"
         - "oncall@example.com"
-      subject_template: "[{{.Severity}}] {{.TargetName}} - {{.Type}}"
+      use_tls: true  # Use TLS/SSL (recommended)
 
   # Telegram Notifier
   - id: "telegram-alerts"

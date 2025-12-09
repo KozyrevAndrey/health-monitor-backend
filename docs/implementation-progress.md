@@ -212,6 +212,51 @@
 
 ---
 
+## ✅ Completed (Фаза 7: Notification System - Email)
+
+### Email Notifier Implementation
+- [x] Email notifier (internal/notifier/email.go)
+  - SMTP client with authentication
+  - TLS/SSL support (configurable)
+  - Multiple recipients support
+  - Configurable SMTP host and port
+  - SMTP authentication (username/password)
+- [x] Rich email formatting
+  - HTML email templates with CSS styling
+  - Plain text fallback
+  - Multipart/alternative MIME format
+  - Severity-based header colors (red, yellow, blue)
+  - Alert type icons in emails
+  - Structured layout with info rows
+  - Metadata section
+- [x] Template system
+  - Go html/template engine
+  - Dynamic subject generation with severity prefix
+  - HTML body with responsive design
+  - Plain text body for compatibility
+- [x] Integration with AlertManager
+  - Email notifier registration in main.go
+  - Configuration loading from YAML
+  - Enable/disable support per notifier
+  - Multiple notifiers support
+- [x] Comprehensive test suite (internal/notifier/email_test.go)
+  - Configuration validation tests (9 scenarios)
+  - Subject building tests (3 severity levels)
+  - Plain text body formatting tests
+  - HTML body formatting tests
+  - Severity color tests
+  - Icon selection tests
+  - MIME message building tests
+  - All 9 test suites passing
+- [x] Configuration support
+  - SMTP settings (host, port, user, password)
+  - From address
+  - Multiple To addresses
+  - TLS/SSL toggle
+  - Example configuration in configs/example.yaml
+
+---
+
 ## 📋 Planned (Фаза 5-8: Core Functionality)
 
 ### Phase 5: Additional Checkers
@@ -231,10 +276,6 @@
   - Template support
   - Custom headers
   - Retry logic
-- [ ] Email notifier
-  - SMTP configuration
-  - HTML templates
-  - Attachment support
 
 ### Phase 8: HTTP API
 - [ ] Router setup (chi/gin)
@@ -295,7 +336,7 @@
 
 ## 📊 Current Status
 
-**Overall Progress: 65%**
+**Overall Progress: 70%**
 
 - ✅ Infrastructure: 100%
 - ✅ Domain Models: 100%
@@ -306,8 +347,9 @@
 - ✅ Scheduler: 100%
 - ✅ Alert Manager: 100%
 - ✅ Telegram Notifier: 100%
+- ✅ Email Notifier: 100%
 - ⏳ Additional Checkers: 0%
-- ⏳ Other Notifiers (Webhook, Email): 0%
+- ⏳ Webhook Notifier: 0%
 - ⏳ HTTP API: 0%
 - ⏳ Web UI: 0%
 
@@ -322,9 +364,10 @@
 3. **✅ DONE: Scheduler** - Periodic check execution with concurrent tasks
 4. **✅ DONE: Alert Manager** - Alert rules, incident tracking, and notification system
 5. **✅ DONE: Telegram Notifier** - Rich Markdown notifications with icons and metadata
-6. **Webhook Notifier** - Send notifications to Slack, Discord, etc.
-7. **HTTP API** - REST endpoints for management and monitoring
-8. **Additional Checkers** - TCP, DNS, ICMP support
+6. **✅ DONE: Email Notifier** - HTML/plain text emails with SMTP
+7. **Webhook Notifier** - Send notifications to Slack, Discord, etc.
+8. **HTTP API** - REST endpoints for management and monitoring
+9. **Additional Checkers** - TCP, DNS, ICMP support
 
 ---
 
