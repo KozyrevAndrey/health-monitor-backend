@@ -176,6 +176,42 @@
 
 ---
 
+## ✅ Completed (Фаза 7: Notification System)
+
+### Telegram Notifier Implementation
+- [x] Telegram notifier (internal/notifier/telegram.go)
+  - Telegram Bot API integration
+  - HTTP client with 10s timeout
+  - Multiple chat IDs support
+  - Markdown message formatting
+  - Special characters escaping for Markdown
+  - Retry-safe error handling
+- [x] Rich message formatting
+  - Alert type icons (🔴 DOWN, 🟢 UP, 🐌 slow, 🔐 SSL, ⚠️ failures)
+  - Severity-based icons (🚨 critical, ℹ️ info)
+  - Structured message layout
+  - Metadata display
+  - Timestamp formatting
+- [x] Integration with AlertManager
+  - Notifier registry in main.go
+  - Configuration loading from YAML
+  - Enable/disable support per notifier
+  - Multiple notifiers support
+- [x] Comprehensive test suite (internal/notifier/telegram_test.go)
+  - Configuration validation tests
+  - Message formatting tests
+  - Icon selection tests
+  - Markdown escaping tests
+  - Integration test (manual)
+  - All 6 test suites passing (54.4% coverage)
+- [x] Configuration support
+  - Bot token configuration
+  - Multiple chat IDs
+  - Enable/disable flag
+  - Example configuration in configs/example.yaml
+
+---
+
 ## 📋 Planned (Фаза 5-8: Core Functionality)
 
 ### Phase 5: Additional Checkers
@@ -190,7 +226,7 @@
   - RTT measurement
 - [ ] Unit tests for additional checkers
 
-### Phase 6: Notification System
+### Phase 6: Notification System (Remaining)
 - [ ] Webhook notifier (Slack, Discord, etc.)
   - Template support
   - Custom headers
@@ -199,10 +235,6 @@
   - SMTP configuration
   - HTML templates
   - Attachment support
-- [ ] Telegram notifier
-  - Bot API integration
-  - Multiple chat support
-  - Message formatting
 
 ### Phase 8: HTTP API
 - [ ] Router setup (chi/gin)
@@ -263,7 +295,7 @@
 
 ## 📊 Current Status
 
-**Overall Progress: 60%**
+**Overall Progress: 65%**
 
 - ✅ Infrastructure: 100%
 - ✅ Domain Models: 100%
@@ -273,8 +305,9 @@
 - ✅ HTTP Checker: 100%
 - ✅ Scheduler: 100%
 - ✅ Alert Manager: 100%
+- ✅ Telegram Notifier: 100%
 - ⏳ Additional Checkers: 0%
-- ⏳ Notifiers: 0%
+- ⏳ Other Notifiers (Webhook, Email): 0%
 - ⏳ HTTP API: 0%
 - ⏳ Web UI: 0%
 
@@ -288,9 +321,10 @@
 2. **✅ DONE: HTTP Checker** - Fully implemented with SSL validation
 3. **✅ DONE: Scheduler** - Periodic check execution with concurrent tasks
 4. **✅ DONE: Alert Manager** - Alert rules, incident tracking, and notification system
-5. **Webhook Notifier** - Send notifications to Slack, Discord, etc.
-6. **HTTP API** - REST endpoints for management and monitoring
-7. **Additional Checkers** - TCP, DNS, ICMP support
+5. **✅ DONE: Telegram Notifier** - Rich Markdown notifications with icons and metadata
+6. **Webhook Notifier** - Send notifications to Slack, Discord, etc.
+7. **HTTP API** - REST endpoints for management and monitoring
+8. **Additional Checkers** - TCP, DNS, ICMP support
 
 ---
 

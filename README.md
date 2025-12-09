@@ -16,10 +16,11 @@ A lightweight, extensible, self-hosted monitoring system for tracking the availa
 - **Clean Architecture** - fully testable and extensible
 - **Alert management** - consecutive failures, response time, SSL expiry detection
 - **Incident tracking** - automatic creation and resolution
+- **Telegram notifications** - rich Markdown messages with icons and metadata
 
 ### Coming Soon 🚧
 - Multiple check types (TCP, DNS, ICMP)
-- Flexible notification system (Webhook, Email, Telegram)
+- Additional notifiers (Webhook, Email)
 - HTTP API (REST endpoints)
 - Simple web interface
 - Real-time updates via Server-Sent Events
@@ -339,9 +340,9 @@ The application exposes a REST API for programmatic access.
 
 ## Roadmap
 
-**Progress: 60%**
+**Progress: 65%**
 
-### Core Features (Phase 1-6) - Completed
+### Core Features (Phase 1-7) - Completed
 - [x] Basic infrastructure setup (Makefile, Docker, CI/CD)
 - [x] Configuration system (Viper with YAML and env variables)
 - [x] Logging system (zerolog with structured logging)
@@ -364,9 +365,15 @@ The application exposes a REST API for programmatic access.
   - DOWN/UP transition alerts
   - Incident tracking and automatic resolution
   - Alert deduplication with cooldown periods
+- [x] Telegram notifier
+  - Bot API integration with HTTP client
+  - Multiple chat IDs support
+  - Rich Markdown formatting with icons
+  - Alert type-specific icons (🔴 DOWN, 🟢 UP, 🐌 slow, 🔐 SSL)
+  - Metadata and timestamp display
 
-### In Progress (Phase 7-8)
-- [ ] Webhook notifier (Slack, Discord)
+### In Progress (Phase 8+)
+- [ ] Additional notifiers (Webhook, Email)
 
 ### Planned (Phase 7+)
 - [ ] Additional checkers (TCP, DNS, ICMP)

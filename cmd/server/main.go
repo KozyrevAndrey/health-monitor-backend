@@ -11,6 +11,8 @@ import (
 	"github.com/rs/zerolog"
 	"health-monitor/internal/alerting"
 	"health-monitor/internal/checker"
+	"health-monitor/internal/domain"
+	"health-monitor/internal/notifier"
 	"health-monitor/internal/scheduler"
 	"health-monitor/internal/storage"
 	"health-monitor/pkg/config"
@@ -116,6 +118,10 @@ func run(ctx context.Context, cfg *config.Config, log zerolog.Logger) error {
 	alertManager := alerting.NewManager(targetRepo, checkResultRepo, incidentRepo, log)
 	log.Info().Msg("Alert manager initialized")
 
+	if err := loadNotifiers(cfg, alertManager, log); err != nil {
+		return fmt.Errorf("failed to load notifiers: %w", err)
+	}
+
 	sched := scheduler.New(checkerRegistry, checkResultRepo, alertManager, log)
 
 	targets, err := scheduler.LoadTargetsFromConfig(cfg.Targets)
@@ -164,6 +170,61 @@ func run(ctx context.Context, cfg *config.Config, log zerolog.Logger) error {
 	log.Info().Msg("Shutdown signal received, starting graceful shutdown...")
 
 	log.Info().Msg("Graceful shutdown completed")
+
+	return nil
+}
+
+func loadNotifiers(cfg *config.Config, alertManager domain.AlertManager, log zerolog.Logger) error {
+	if len(cfg.Notifiers) == 0 {
+		log.Info().Msg("No notifiers configured")
+		return nil
+	}
+
+	enabledCount := 0
+	for _, notifierCfg := range cfg.Notifiers {
+		if !notifierCfg.Enabled {
+			log.Debug().
+				Str("id", notifierCfg.ID).
+				Str("type", notifierCfg.Type).
+				Msg("Notifier disabled, skipping")
+			continue
+		}
+
+		var n domain.Notifier
+		var err error
+
+		switch notifierCfg.Type {
+		case "telegram":
+			n, err = notifier.NewTelegramNotifier(notifierCfg.Config, log)
+		default:
+			log.Warn().
+				Str("id", notifierCfg.ID).
+				Str("type", notifierCfg.Type).
+				Msg("Unknown notifier type, skipping")
+			continue
+		}
+
+		if err != nil {
+			return fmt.Errorf("failed to create notifier %s (%s): %w", notifierCfg.ID, notifierCfg.Type, err)
+		}
+
+		if err := n.Validate(notifierCfg.Config); err != nil {
+			return fmt.Errorf("invalid config for notifier %s (%s): %w", notifierCfg.ID, notifierCfg.Type, err)
+		}
+
+		alertManager.RegisterNotifier(n)
+		enabledCount++
+
+		log.Info().
+			Str("id", notifierCfg.ID).
+			Str("type", notifierCfg.Type).
+			Msg("Notifier registered")
+	}
+
+	log.Info().
+		Int("enabled", enabledCount).
+		Int("total", len(cfg.Notifiers)).
+		Msg("Notifiers loaded")
 
 	return nil
 }
