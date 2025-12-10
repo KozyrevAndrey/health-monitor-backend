@@ -69,6 +69,10 @@ func (s *Server) setupRouter() chi.Router {
 
 	r.Get("/health", s.handleHealth)
 
+	r.Get("/", s.handleIndex)
+	fileServer := http.FileServer(http.Dir("./web/static"))
+	r.Handle("/static/*", http.StripPrefix("/static", fileServer))
+
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Route("/targets", func(r chi.Router) {
 			r.Get("/", s.handleListTargets)

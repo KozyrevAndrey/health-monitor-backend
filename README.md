@@ -19,11 +19,11 @@ A lightweight, extensible, self-hosted monitoring system for tracking the availa
 - **Telegram notifications** - rich Markdown messages with icons and metadata
 - **Email notifications** - HTML and plain text with SMTP support
 - **REST API** - full CRUD for targets, results, and incidents
+- **Web Dashboard** - real-time monitoring interface with auto-refresh
 
 ### Coming Soon 🚧
 - Multiple check types (TCP, DNS, ICMP)
 - Additional notifiers (Webhook)
-- Simple web interface
 - Real-time updates via Server-Sent Events
 
 ## Quick Start
@@ -65,7 +65,23 @@ docker-compose down
 ```bash
 # After building
 ./bin/health-monitor --config configs/example.yaml
+
+# Access the web dashboard
+open http://localhost:8080
 ```
+
+### Access Web Dashboard
+
+Once the application is running, open your browser and navigate to:
+```
+http://localhost:8080
+```
+
+The dashboard will show:
+- Real-time target status
+- Health statistics
+- Recent incidents
+- Auto-refresh every 10 seconds
 
 ## Configuration
 
@@ -356,9 +372,9 @@ The application exposes a REST API for programmatic access on port 8080.
 
 ## Roadmap
 
-**Progress: 75%**
+**Progress: 80%**
 
-### Core Features (Phase 1-8) - Completed
+### Core Features (Phase 1-9) - Completed
 - [x] Basic infrastructure setup (Makefile, Docker, CI/CD)
 - [x] Configuration system (Viper with YAML and env variables)
 - [x] Logging system (zerolog with structured logging)
@@ -401,15 +417,21 @@ The application exposes a REST API for programmatic access on port 8080.
   - Pagination support
   - Logging middleware
   - Graceful shutdown
+- [x] Web Dashboard
+  - Single-page application (vanilla JS)
+  - Real-time target status monitoring
+  - Health statistics overview
+  - Recent incidents display
+  - Auto-refresh every 10 seconds
+  - Responsive design
+  - Modern UI with gradient headers
 
-### In Progress (Phase 9+)
+### In Progress (Phase 10+)
 - [ ] Additional notifiers (Webhook)
 
 ### Planned
 - [ ] Additional checkers (TCP, DNS, ICMP)
-- [ ] Simple web UI (dashboard)
 - [ ] Real-time updates (Server-Sent Events)
-- [ ] Additional notifiers (Email, Telegram)
 - [ ] PostgreSQL support
 - [ ] Advanced alerting rules
 - [ ] Multi-user support and RBAC

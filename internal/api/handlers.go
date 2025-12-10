@@ -30,6 +30,10 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	s.respondJSON(w, http.StatusOK, response)
 }
 
+func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "./web/static/index.html")
+}
+
 func (s *Server) handleListTargets(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
