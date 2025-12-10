@@ -10,6 +10,7 @@ import (
 
 	"github.com/rs/zerolog"
 	"health-monitor/internal/alerting"
+	"health-monitor/internal/api"
 	"health-monitor/internal/checker"
 	"health-monitor/internal/domain"
 	"health-monitor/internal/notifier"
@@ -156,6 +157,14 @@ func run(ctx context.Context, cfg *config.Config, log zerolog.Logger) error {
 		}
 	}
 
+	apiServer := api.NewServer(cfg.Server, targetRepo, checkResultRepo, incidentRepo, log)
+
+	go func() {
+		if err := apiServer.Start(); err != nil {
+			log.Error().Err(err).Msg("API server failed")
+		}
+	}()
+
 	log.Info().
 		Bool("target_repo", targetRepo != nil).
 		Bool("check_result_repo", checkResultRepo != nil).
@@ -163,11 +172,19 @@ func run(ctx context.Context, cfg *config.Config, log zerolog.Logger) error {
 		Bool("checker_registry", checkerRegistry != nil).
 		Bool("alert_manager", alertManager != nil).
 		Bool("scheduler", sched.IsRunning()).
+		Bool("api_server", apiServer != nil).
 		Msg("All components initialized successfully")
 
 	<-ctx.Done()
 
 	log.Info().Msg("Shutdown signal received, starting graceful shutdown...")
+
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), cfg.Server.ShutdownTimeout)
+	defer shutdownCancel()
+
+	if err := apiServer.Shutdown(shutdownCtx); err != nil {
+		log.Error().Err(err).Msg("API server shutdown failed")
+	}
 
 	log.Info().Msg("Graceful shutdown completed")
 

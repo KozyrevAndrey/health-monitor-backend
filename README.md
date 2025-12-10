@@ -18,11 +18,11 @@ A lightweight, extensible, self-hosted monitoring system for tracking the availa
 - **Incident tracking** - automatic creation and resolution
 - **Telegram notifications** - rich Markdown messages with icons and metadata
 - **Email notifications** - HTML and plain text with SMTP support
+- **REST API** - full CRUD for targets, results, and incidents
 
 ### Coming Soon 🚧
 - Multiple check types (TCP, DNS, ICMP)
 - Additional notifiers (Webhook)
-- HTTP API (REST endpoints)
 - Simple web interface
 - Real-time updates via Server-Sent Events
 
@@ -327,23 +327,38 @@ sudo systemctl start health-monitor
 
 ## API Documentation
 
-The application exposes a REST API for programmatic access.
+The application exposes a REST API for programmatic access on port 8080.
 
-### Endpoints
+### Health Check
+
+- `GET /health` - Application health status
+
+### Targets
 
 - `GET /api/v1/targets` - List all targets
-- `GET /api/v1/targets/:id` - Get target details
-- `GET /api/v1/targets/:id/checks` - Get check history
-- `GET /api/v1/targets/:id/stats` - Get statistics
-- `GET /api/v1/incidents` - List incidents
-- `GET /api/health` - Health check
-- `GET /api/v1/events` - Server-Sent Events stream
+- `POST /api/v1/targets` - Create a new target
+- `GET /api/v1/targets/{id}` - Get target details
+- `PUT /api/v1/targets/{id}` - Update target
+- `DELETE /api/v1/targets/{id}` - Delete target
+- `GET /api/v1/targets/{id}/results?limit=100&offset=0` - Get check results
+- `GET /api/v1/targets/{id}/stats?period=24h` - Get statistics
+
+### Results
+
+- `GET /api/v1/results` - List all results (coming soon)
+- `GET /api/v1/results/{id}` - Get result by ID (coming soon)
+
+### Incidents
+
+- `GET /api/v1/incidents?limit=100&offset=0` - List all incidents
+- `GET /api/v1/incidents/{id}` - Get incident details
+- `GET /api/v1/incidents/ongoing` - List ongoing incidents
 
 ## Roadmap
 
-**Progress: 70%**
+**Progress: 75%**
 
-### Core Features (Phase 1-7) - Completed
+### Core Features (Phase 1-8) - Completed
 - [x] Basic infrastructure setup (Makefile, Docker, CI/CD)
 - [x] Configuration system (Viper with YAML and env variables)
 - [x] Logging system (zerolog with structured logging)
@@ -378,13 +393,20 @@ The application exposes a REST API for programmatic access.
   - Multiple recipients support
   - Rich HTML templates with severity colors
   - Multipart/alternative MIME format
+- [x] HTTP API
+  - Chi router with middleware
+  - CORS support
+  - REST endpoints for targets, results, incidents
+  - Health check endpoint
+  - Pagination support
+  - Logging middleware
+  - Graceful shutdown
 
-### In Progress (Phase 8+)
+### In Progress (Phase 9+)
 - [ ] Additional notifiers (Webhook)
 
-### Planned (Phase 7+)
+### Planned
 - [ ] Additional checkers (TCP, DNS, ICMP)
-- [ ] HTTP API (REST endpoints)
 - [ ] Simple web UI (dashboard)
 - [ ] Real-time updates (Server-Sent Events)
 - [ ] Additional notifiers (Email, Telegram)

@@ -257,7 +257,53 @@
 
 ---
 
-## 📋 Planned (Фаза 5-8: Core Functionality)
+## ✅ Completed (Фаза 8: HTTP API)
+
+### HTTP API Implementation
+- [x] API Server (internal/api/server.go)
+  - Chi router v5
+  - HTTP server with configurable timeouts
+  - Graceful shutdown support
+  - Server lifecycle management
+- [x] Middleware stack
+  - Request ID middleware
+  - Real IP detection
+  - Logging middleware with request/response details
+  - Recovery middleware (panic handler)
+  - Timeout middleware (60s default)
+  - CORS middleware (configurable)
+- [x] REST Endpoints
+  - Health check: `GET /health`
+  - Targets CRUD:
+    - `GET /api/v1/targets` - list
+    - `POST /api/v1/targets` - create
+    - `GET /api/v1/targets/{id}` - get
+    - `PUT /api/v1/targets/{id}` - update
+    - `DELETE /api/v1/targets/{id}` - delete
+    - `GET /api/v1/targets/{id}/results` - history
+    - `GET /api/v1/targets/{id}/stats` - statistics
+  - Incidents:
+    - `GET /api/v1/incidents` - list all
+    - `GET /api/v1/incidents/{id}` - get by ID
+    - `GET /api/v1/incidents/ongoing` - filter ongoing
+  - Results endpoints (placeholders for future)
+- [x] HTTP Handlers (internal/api/handlers.go)
+  - JSON request/response handling
+  - Error response formatting
+  - Query parameter parsing (limit, offset, period)
+  - Proper HTTP status codes
+- [x] Integration
+  - Integrated with main.go
+  - Runs concurrently with scheduler
+  - Uses shared repositories
+  - Graceful shutdown coordination
+- [x] Dependencies
+  - github.com/go-chi/chi/v5 v5.2.3
+  - github.com/go-chi/cors v1.2.2
+
+---
+
+## 📋 Planned (Фаза 5-9: Extended Functionality)
 
 ### Phase 5: Additional Checkers
 - [ ] TCP checker (internal/checker/tcp.go)
@@ -276,24 +322,6 @@
   - Template support
   - Custom headers
   - Retry logic
-
-### Phase 8: HTTP API
-- [ ] Router setup (chi/gin)
-- [ ] Middleware
-  - Logging
-  - Recovery
-  - CORS
-  - Authentication (Basic Auth)
-- [ ] Endpoints
-  - GET /api/v1/targets
-  - GET /api/v1/targets/:id
-  - GET /api/v1/targets/:id/checks
-  - GET /api/v1/targets/:id/stats
-  - GET /api/v1/incidents
-  - GET /api/health
-  - GET /api/v1/events (SSE)
-- [ ] Request validation
-- [ ] Response formatting
 
 ---
 
@@ -336,7 +364,7 @@
 
 ## 📊 Current Status
 
-**Overall Progress: 70%**
+**Overall Progress: 75%**
 
 - ✅ Infrastructure: 100%
 - ✅ Domain Models: 100%
@@ -348,12 +376,12 @@
 - ✅ Alert Manager: 100%
 - ✅ Telegram Notifier: 100%
 - ✅ Email Notifier: 100%
+- ✅ HTTP API: 100%
 - ⏳ Additional Checkers: 0%
 - ⏳ Webhook Notifier: 0%
-- ⏳ HTTP API: 0%
 - ⏳ Web UI: 0%
 
-**Last Updated:** 2025-12-09
+**Last Updated:** 2025-12-10
 
 ---
 
@@ -365,9 +393,10 @@
 4. **✅ DONE: Alert Manager** - Alert rules, incident tracking, and notification system
 5. **✅ DONE: Telegram Notifier** - Rich Markdown notifications with icons and metadata
 6. **✅ DONE: Email Notifier** - HTML/plain text emails with SMTP
-7. **Webhook Notifier** - Send notifications to Slack, Discord, etc.
-8. **HTTP API** - REST endpoints for management and monitoring
+7. **✅ DONE: HTTP API** - REST endpoints with Chi router
+8. **Webhook Notifier** - Send notifications to Slack, Discord, etc.
 9. **Additional Checkers** - TCP, DNS, ICMP support
+10. **Web UI** - Simple dashboard for monitoring
 
 ---
 
