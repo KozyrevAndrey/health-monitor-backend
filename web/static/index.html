@@ -101,7 +101,12 @@
             font-weight: 600;
         }
 
-        .refresh-btn {
+        .btn-group {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn {
             background: #667eea;
             color: white;
             border: none;
@@ -110,10 +115,34 @@
             cursor: pointer;
             font-size: 0.875rem;
             transition: background 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
         }
 
-        .refresh-btn:hover {
+        .btn:hover {
             background: #5568d3;
+        }
+
+        .btn-success {
+            background: #10b981;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .btn-small {
+            padding: 0.25rem 0.75rem;
+            font-size: 0.75rem;
         }
 
         .targets-grid {
@@ -143,6 +172,11 @@
         .target-name {
             font-size: 1.125rem;
             font-weight: 600;
+        }
+
+        .target-actions {
+            display: flex;
+            gap: 0.5rem;
         }
 
         .status-badge {
@@ -182,43 +216,79 @@
             gap: 0.5rem;
         }
 
-        .incidents-list {
-            display: grid;
-            gap: 1rem;
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
         }
 
-        .incident-card {
-            border-left: 4px solid;
-            padding: 1rem;
-            background: #f9fafb;
-            border-radius: 4px;
+        .modal.active {
+            display: flex;
         }
 
-        .incident-ongoing {
-            border-color: #ef4444;
-            background: #fef2f2;
+        .modal-content {
+            background: white;
+            border-radius: 10px;
+            padding: 2rem;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
         }
 
-        .incident-resolved {
-            border-color: #10b981;
-            background: #f0fdf4;
-        }
-
-        .incident-header {
+        .modal-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 0.5rem;
+            margin-bottom: 1.5rem;
         }
 
-        .incident-target {
+        .modal-title {
+            font-size: 1.5rem;
             font-weight: 600;
-            font-size: 1rem;
         }
 
-        .incident-info {
-            font-size: 0.875rem;
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
             color: #666;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .form-input, .form-select, .form-textarea {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #d1d5db;
+            border-radius: 5px;
+            font-size: 0.875rem;
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .form-checkbox {
+            margin-right: 0.5rem;
         }
 
         .loading {
@@ -259,6 +329,45 @@
             font-size: 0.875rem;
             margin-top: 2rem;
         }
+
+        .incidents-list {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .incident-card {
+            border-left: 4px solid;
+            padding: 1rem;
+            background: #f9fafb;
+            border-radius: 4px;
+        }
+
+        .incident-ongoing {
+            border-color: #ef4444;
+            background: #fef2f2;
+        }
+
+        .incident-resolved {
+            border-color: #10b981;
+            background: #f0fdf4;
+        }
+
+        .incident-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .incident-target {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .incident-info {
+            font-size: 0.875rem;
+            color: #666;
+        }
     </style>
 </head>
 <body>
@@ -290,7 +399,10 @@
         <div class="section">
             <div class="section-header">
                 <h2 class="section-title">Monitored Targets</h2>
-                <button class="refresh-btn" onclick="refreshData()">🔄 Refresh</button>
+                <div class="btn-group">
+                    <button class="btn btn-success" onclick="showCreateModal()">➕ Add Target</button>
+                    <button class="btn" onclick="refreshData()">🔄 Refresh</button>
+                </div>
             </div>
             <div id="targets-container">
                 <div class="loading">
@@ -313,20 +425,205 @@
         </div>
 
         <div class="last-updated">
-            Last updated: <span id="last-updated">Never</span> • Auto-refresh every 10 seconds
+            Last updated: <span id="last-updated">Never</span> • Auto-refresh every 30 seconds
+        </div>
+    </div>
+
+    <!-- Create/Edit Modal -->
+    <div id="targetModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modalTitle">Add New Target</h2>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <form id="targetForm" onsubmit="saveTarget(event)">
+                <input type="hidden" id="targetId" />
+
+                <div class="form-group">
+                    <label class="form-label">Target ID *</label>
+                    <input type="text" id="formTargetId" class="form-input" required pattern="[a-z0-9-]+"
+                           placeholder="my-api-service" title="Only lowercase letters, numbers, and hyphens">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Name *</label>
+                    <input type="text" id="formName" class="form-input" required placeholder="My API Service">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Type *</label>
+                    <select id="formType" class="form-select" required>
+                        <option value="http">HTTP/HTTPS</option>
+                        <option value="tcp">TCP Port</option>
+                        <option value="dns">DNS</option>
+                        <option value="icmp">ICMP (Ping)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">URL *</label>
+                    <input type="url" id="formUrl" class="form-input" required placeholder="https://api.example.com/health">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Check Interval (e.g., 30s, 1m, 5m) *</label>
+                    <input type="text" id="formInterval" class="form-input" required value="30s" placeholder="30s">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Timeout (e.g., 10s) *</label>
+                    <input type="text" id="formTimeout" class="form-input" required value="10s" placeholder="10s">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Expected Status Code</label>
+                    <input type="number" id="formStatusCode" class="form-input" value="200" placeholder="200">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <textarea id="formDescription" class="form-textarea" placeholder="Production API health endpoint"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="formEnabled" class="form-checkbox" checked>
+                        <span class="form-label" style="display: inline;">Enabled</span>
+                    </label>
+                </div>
+
+                <div class="btn-group">
+                    <button type="submit" class="btn btn-success">💾 Save</button>
+                    <button type="button" class="btn" onclick="closeModal()">Cancel</button>
+                </div>
+            </form>
         </div>
     </div>
 
     <script>
         const API_BASE = window.location.origin;
         let autoRefreshInterval;
+        let editingTargetId = null;
 
-        async function fetchAPI(endpoint) {
-            const response = await fetch(`${API_BASE}${endpoint}`);
+        async function fetchAPI(endpoint, options = {}) {
+            const response = await fetch(`${API_BASE}${endpoint}`, {
+                ...options,
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...options.headers,
+                },
+            });
+
             if (!response.ok) {
-                throw new Error(`API error: ${response.statusText}`);
+                const error = await response.json().catch(() => ({ error: response.statusText }));
+                throw new Error(error.message || error.error || response.statusText);
             }
+
+            if (response.status === 204) {
+                return null;
+            }
+
             return response.json();
+        }
+
+        function showCreateModal() {
+            editingTargetId = null;
+            document.getElementById('modalTitle').textContent = 'Add New Target';
+            document.getElementById('targetForm').reset();
+            document.getElementById('formEnabled').checked = true;
+            document.getElementById('formTargetId').readOnly = false;
+            document.getElementById('targetModal').classList.add('active');
+        }
+
+        function showEditModal(target) {
+            editingTargetId = target.id;
+            document.getElementById('modalTitle').textContent = 'Edit Target';
+            document.getElementById('formTargetId').value = target.id;
+            document.getElementById('formTargetId').readOnly = true;
+            document.getElementById('formName').value = target.name;
+            document.getElementById('formType').value = target.type;
+            document.getElementById('formUrl').value = target.config.url || '';
+            document.getElementById('formInterval').value = formatDuration(target.interval);
+            document.getElementById('formTimeout').value = formatDuration(target.timeout);
+            document.getElementById('formStatusCode').value = target.config.expected_status_code || 200;
+            document.getElementById('formDescription').value = target.description || '';
+            document.getElementById('formEnabled').checked = target.enabled;
+            document.getElementById('targetModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('targetModal').classList.remove('active');
+        }
+
+        function formatDuration(ns) {
+            const seconds = ns / 1000000000;
+            if (seconds < 60) return seconds + 's';
+            return Math.floor(seconds / 60) + 'm';
+        }
+
+        function parseDuration(str) {
+            const match = str.match(/^(\d+)([smh])$/);
+            if (!match) return 30000000000;
+            const value = parseInt(match[1]);
+            const unit = match[2];
+            const multipliers = { s: 1, m: 60, h: 3600 };
+            return value * multipliers[unit] * 1000000000;
+        }
+
+        async function saveTarget(event) {
+            event.preventDefault();
+
+            const targetData = {
+                id: document.getElementById('formTargetId').value,
+                name: document.getElementById('formName').value,
+                type: document.getElementById('formType').value,
+                enabled: document.getElementById('formEnabled').checked,
+                interval: parseDuration(document.getElementById('formInterval').value),
+                timeout: parseDuration(document.getElementById('formTimeout').value),
+                description: document.getElementById('formDescription').value,
+                tags: [],
+                config: {
+                    url: document.getElementById('formUrl').value,
+                    method: 'GET',
+                    expected_status_code: parseInt(document.getElementById('formStatusCode').value) || 200,
+                    validate_ssl: true,
+                    check_ssl_expiry: true,
+                },
+            };
+
+            try {
+                if (editingTargetId) {
+                    await fetchAPI(`/api/v1/targets/${editingTargetId}`, {
+                        method: 'PUT',
+                        body: JSON.stringify(targetData),
+                    });
+                } else {
+                    await fetchAPI('/api/v1/targets', {
+                        method: 'POST',
+                        body: JSON.stringify(targetData),
+                    });
+                }
+
+                closeModal();
+                await refreshData();
+            } catch (error) {
+                alert('Failed to save target: ' + error.message);
+            }
+        }
+
+        async function deleteTarget(targetId, targetName) {
+            if (!confirm(`Are you sure you want to delete "${targetName}"?`)) {
+                return;
+            }
+
+            try {
+                await fetchAPI(`/api/v1/targets/${targetId}`, {
+                    method: 'DELETE',
+                });
+                await refreshData();
+            } catch (error) {
+                alert('Failed to delete target: ' + error.message);
+            }
         }
 
         async function loadTargets() {
@@ -339,6 +636,7 @@
                         <div class="empty-state">
                             <div class="empty-state-icon">📭</div>
                             <p>No targets configured yet</p>
+                            <button class="btn btn-success" onclick="showCreateModal()" style="margin-top: 1rem;">➕ Add Your First Target</button>
                         </div>
                     `;
                     return { total: 0, healthy: 0, failing: 0 };
@@ -374,7 +672,11 @@
                         <div class="target-card">
                             <div class="target-header">
                                 <div class="target-name">${target.name}</div>
-                                <span class="status-badge ${statusClass}">${status}</span>
+                                <div class="target-actions">
+                                    <span class="status-badge ${statusClass}">${status}</span>
+                                    <button class="btn btn-small" onclick='showEditModal(${JSON.stringify(target).replace(/'/g, "&#39;")})'>✏️ Edit</button>
+                                    <button class="btn btn-small btn-danger" onclick="deleteTarget('${target.id}', '${target.name}')">🗑️ Delete</button>
+                                </div>
                             </div>
                             <div class="target-info">
                                 <div class="info-item">
@@ -482,12 +784,18 @@
 
         window.addEventListener('DOMContentLoaded', () => {
             refreshData();
-            autoRefreshInterval = setInterval(refreshData, 10000);
+            autoRefreshInterval = setInterval(refreshData, 30000);
         });
 
         window.addEventListener('beforeunload', () => {
             if (autoRefreshInterval) {
                 clearInterval(autoRefreshInterval);
+            }
+        });
+
+        document.getElementById('targetModal').addEventListener('click', (e) => {
+            if (e.target.id === 'targetModal') {
+                closeModal();
             }
         });
     </script>
