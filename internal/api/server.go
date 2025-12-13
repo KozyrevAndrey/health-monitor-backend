@@ -20,6 +20,7 @@ type Server struct {
 	targetRepo      domain.TargetRepository
 	checkResultRepo domain.CheckResultRepository
 	incidentRepo    domain.IncidentRepository
+	scheduler       domain.Scheduler
 	log             zerolog.Logger
 }
 
@@ -28,12 +29,14 @@ func NewServer(
 	targetRepo domain.TargetRepository,
 	checkResultRepo domain.CheckResultRepository,
 	incidentRepo domain.IncidentRepository,
+	scheduler domain.Scheduler,
 	log zerolog.Logger,
 ) *Server {
 	s := &Server{
 		targetRepo:      targetRepo,
 		checkResultRepo: checkResultRepo,
 		incidentRepo:    incidentRepo,
+		scheduler:       scheduler,
 		log:             log,
 	}
 

@@ -125,13 +125,6 @@ func run(ctx context.Context, cfg *config.Config, log zerolog.Logger) error {
 
 	sched := scheduler.New(checkerRegistry, checkResultRepo, alertManager, log)
 
-	targets, err := scheduler.LoadTargetsFromConfig(cfg.Targets)
-	if err != nil {
-		return fmt.Errorf("failed to load targets from config: %w", err)
-	}
-
-	log.Info().Int("targets", len(targets)).Msg("Loaded targets from configuration")
-
 	if err := sched.Start(ctx); err != nil {
 		return fmt.Errorf("failed to start scheduler: %w", err)
 	}
@@ -141,23 +134,27 @@ func run(ctx context.Context, cfg *config.Config, log zerolog.Logger) error {
 		}
 	}()
 
-	for _, target := range targets {
-		if err := targetRepo.Create(ctx, target); err != nil {
-			log.Warn().
-				Err(err).
-				Str("target_id", target.ID).
-				Msg("Failed to save target to database (might already exist)")
-		}
+	targets, err := targetRepo.List(ctx)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to load targets from database")
+	} else {
+		for _, target := range targets {
+			if !target.Enabled {
+				log.Debug().Str("target_id", target.ID).Msg("Skipping disabled target")
+				continue
+			}
 
-		if err := sched.AddTarget(target); err != nil {
-			log.Error().
-				Err(err).
-				Str("target_id", target.ID).
-				Msg("Failed to add target to scheduler")
+			if err := sched.AddTarget(target); err != nil {
+				log.Error().
+					Err(err).
+					Str("target_id", target.ID).
+					Msg("Failed to add target to scheduler")
+			}
 		}
+		log.Info().Int("targets", len(targets)).Msg("Loaded targets from database")
 	}
 
-	apiServer := api.NewServer(cfg.Server, targetRepo, checkResultRepo, incidentRepo, log)
+	apiServer := api.NewServer(cfg.Server, targetRepo, checkResultRepo, incidentRepo, sched, log)
 
 	go func() {
 		if err := apiServer.Start(); err != nil {

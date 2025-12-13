@@ -29,8 +29,8 @@ retention:
 
 targets:
   # HTTP Health Check Example
-  - id: "example-api"
-    name: "Example API"
+  - id: "alfabank-far-harbor"
+    name: "Alfabank Far Harbor"
     type: "http"
     enabled: true
     interval: "30s"
@@ -54,14 +54,7 @@ targets:
         consecutive_failures: 3
         severity: "critical"
         notifier_ids:
-          - "webhook-slack"
-          - "email-team"
-      - name: "Slow Response"
-        enabled: true
-        response_time_ms: 1000
-        severity: "warning"
-        notifier_ids:
-          - "email-team"
+          - "telegram-alerts"
 
   # HTTP POST Example with Headers
   - id: "auth-endpoint"
@@ -162,7 +155,7 @@ notifiers:
       method: "POST"
       headers:
         Content-Type: "application/json"
-      template: |
+r       template: |
         {
           "text": "🚨 Alert: {{.TargetName}}",
           "blocks": [

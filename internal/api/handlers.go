@@ -76,6 +76,15 @@ func (s *Server) handleCreateTarget(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if target.Enabled && s.scheduler != nil {
+		if err := s.scheduler.AddTarget(&target); err != nil {
+			s.log.Error().
+				Err(err).
+				Str("target_id", target.ID).
+				Msg("Failed to add target to scheduler")
+		}
+	}
+
 	s.respondJSON(w, http.StatusCreated, target)
 }
 
@@ -95,6 +104,8 @@ func (s *Server) handleUpdateTarget(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	wasEnabled := existing.Enabled
+
 	existing.Name = updates.Name
 	existing.Type = updates.Type
 	existing.Config = updates.Config
@@ -110,12 +121,36 @@ func (s *Server) handleUpdateTarget(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if s.scheduler != nil {
+		if wasEnabled && !existing.Enabled {
+			s.scheduler.RemoveTarget(existing.ID)
+		} else if !wasEnabled && existing.Enabled {
+			if err := s.scheduler.AddTarget(existing); err != nil {
+				s.log.Error().
+					Err(err).
+					Str("target_id", existing.ID).
+					Msg("Failed to add target to scheduler")
+			}
+		} else if existing.Enabled {
+			if err := s.scheduler.UpdateTarget(existing); err != nil {
+				s.log.Error().
+					Err(err).
+					Str("target_id", existing.ID).
+					Msg("Failed to update target in scheduler")
+			}
+		}
+	}
+
 	s.respondJSON(w, http.StatusOK, existing)
 }
 
 func (s *Server) handleDeleteTarget(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	id := chi.URLParam(r, "id")
+
+	if s.scheduler != nil {
+		s.scheduler.RemoveTarget(id)
+	}
 
 	if err := s.targetRepo.Delete(ctx, id); err != nil {
 		s.respondError(w, http.StatusInternalServerError, "Failed to delete target", err)
