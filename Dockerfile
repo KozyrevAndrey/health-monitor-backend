@@ -47,6 +47,9 @@ COPY --from=builder /build/health-monitor .
 # Copy configuration examples
 COPY --from=builder /build/configs /configs
 
+# Copy web static files
+COPY --from=builder /build/web /app/web
+
 # Create data directory
 RUN mkdir -p /data && chown -R healthmon:healthmon /data /app
 
