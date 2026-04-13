@@ -3,6 +3,7 @@ package notifier
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"fmt"
 	"html/template"
 	"net/smtp"
@@ -135,9 +136,17 @@ func (e *EmailNotifier) Notify(ctx context.Context, alert *domain.Alert) error {
 	msg := e.buildEmailMessage(subject, htmlBody, plainBody)
 
 	addr := fmt.Sprintf("%s:%d", e.smtpHost, e.smtpPort)
-	auth := smtp.PlainAuth("", e.smtpUser, e.smtpPassword, e.smtpHost)
 
-	err := smtp.SendMail(addr, auth, e.from, e.to, []byte(msg))
+	var err error
+	if e.useTLS && e.smtpPort == 465 {
+		// Implicit TLS (SMTPS) — port 465
+		err = e.sendMailImplicitTLS(addr, msg)
+	} else {
+		// STARTTLS or plain — port 587/25
+		auth := smtp.PlainAuth("", e.smtpUser, e.smtpPassword, e.smtpHost)
+		err = smtp.SendMail(addr, auth, e.from, e.to, []byte(msg))
+	}
+
 	if err != nil {
 		return fmt.Errorf("failed to send email: %w", err)
 	}
@@ -149,6 +158,51 @@ func (e *EmailNotifier) Notify(ctx context.Context, alert *domain.Alert) error {
 		Msg("Email notification sent")
 
 	return nil
+}
+
+// sendMailImplicitTLS sends email over implicit TLS (SMTPS, port 465)
+func (e *EmailNotifier) sendMailImplicitTLS(addr, msg string) error {
+	tlsCfg := &tls.Config{
+		ServerName: e.smtpHost,
+	}
+
+	conn, err := tls.Dial("tcp", addr, tlsCfg)
+	if err != nil {
+		return fmt.Errorf("TLS dial failed: %w", err)
+	}
+	defer conn.Close()
+
+	c, err := smtp.NewClient(conn, e.smtpHost)
+	if err != nil {
+		return fmt.Errorf("SMTP client failed: %w", err)
+	}
+	defer c.Quit() //nolint:errcheck
+
+	auth := smtp.PlainAuth("", e.smtpUser, e.smtpPassword, e.smtpHost)
+	if err = c.Auth(auth); err != nil {
+		return fmt.Errorf("SMTP auth failed: %w", err)
+	}
+
+	if err = c.Mail(e.from); err != nil {
+		return fmt.Errorf("SMTP MAIL FROM failed: %w", err)
+	}
+
+	for _, rcpt := range e.to {
+		if err = c.Rcpt(rcpt); err != nil {
+			return fmt.Errorf("SMTP RCPT TO %s failed: %w", rcpt, err)
+		}
+	}
+
+	w, err := c.Data()
+	if err != nil {
+		return fmt.Errorf("SMTP DATA failed: %w", err)
+	}
+
+	if _, err = fmt.Fprint(w, msg); err != nil {
+		return fmt.Errorf("SMTP write failed: %w", err)
+	}
+
+	return w.Close()
 }
 
 func (e *EmailNotifier) buildSubject(alert *domain.Alert) string {
