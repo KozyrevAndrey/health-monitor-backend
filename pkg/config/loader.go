@@ -23,6 +23,18 @@ func Load(configPath string) (*Config, error) {
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	v.AutomaticEnv()
 
+	// Explicitly bind env vars — AutomaticEnv alone doesn't work with Unmarshal
+	_ = v.BindEnv("server.host")
+	_ = v.BindEnv("server.port")
+	_ = v.BindEnv("server.enable_auth")
+	_ = v.BindEnv("server.basic_auth_user")
+	_ = v.BindEnv("server.basic_auth_pass")
+	_ = v.BindEnv("database.path")
+	_ = v.BindEnv("database.type")
+	_ = v.BindEnv("logging.level")
+	_ = v.BindEnv("logging.format")
+	_ = v.BindEnv("logging.output")
+
 	// Read config file
 	if err := v.ReadInConfig(); err != nil {
 		return nil, fmt.Errorf("failed to read config file: %w", err)
