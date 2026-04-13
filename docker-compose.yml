@@ -18,7 +18,8 @@ services:
       - ./data:/data
       # Secrets directory (gitignored) — place google-service-account.json here
       # Create manually: mkdir secrets && cp your-sa-file.json secrets/google-service-account.json
-      - ./secrets:/app/secrets:ro
+      # Writable so Gmail OAuth can persist refreshed tokens
+      - ./secrets:/app/secrets
     environment:
       # Override config via environment variables
       - HEALTH_MONITOR_SERVER_HOST=0.0.0.0
