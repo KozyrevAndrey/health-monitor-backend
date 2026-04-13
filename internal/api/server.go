@@ -25,6 +25,9 @@ type Server struct {
 	alertManager    domain.AlertManager
 	scheduler       domain.Scheduler
 	log             zerolog.Logger
+	enableAuth      bool
+	basicAuthUser   string
+	basicAuthPass   string
 }
 
 func NewServer(
@@ -45,6 +48,9 @@ func NewServer(
 		alertManager:    alertManager,
 		scheduler:       scheduler,
 		log:             log,
+		enableAuth:      cfg.EnableAuth,
+		basicAuthUser:   cfg.BasicAuthUser,
+		basicAuthPass:   cfg.BasicAuthPass,
 	}
 
 	s.router = s.setupRouter()
@@ -59,6 +65,18 @@ func NewServer(
 	return s
 }
 
+func (s *Server) basicAuthMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		user, pass, ok := r.BasicAuth()
+		if !ok || user != s.basicAuthUser || pass != s.basicAuthPass {
+			w.Header().Set("WWW-Authenticate", `Basic realm="Health Monitor"`)
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
 func (s *Server) setupRouter() chi.Router {
 	r := chi.NewRouter()
 
@@ -67,6 +85,10 @@ func (s *Server) setupRouter() chi.Router {
 	r.Use(s.loggingMiddleware)
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Timeout(60 * time.Second))
+
+	if s.enableAuth {
+		r.Use(s.basicAuthMiddleware)
+	}
 
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"*"},
