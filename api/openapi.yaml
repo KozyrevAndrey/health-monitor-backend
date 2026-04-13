@@ -1,0 +1,537 @@
+openapi: 3.0.3
+info:
+  title: Health Monitor API
+  description: |
+    Health monitoring service with support for HTTP, TCP, DNS, and ICMP checks.
+    Monitor your services, APIs, and infrastructure with real-time alerts.
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@example.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8080
+    description: Development server
+  - url: https://api.health-monitor.example.com
+    description: Production server
+
+tags:
+  - name: health
+    description: Health check endpoints
+  - name: targets
+    description: Monitoring target management
+  - name: results
+    description: Check results
+  - name: incidents
+    description: Incident management
+
+paths:
+  /health:
+    get:
+      tags:
+        - health
+      summary: Health check endpoint
+      description: Get the health status of the API
+      operationId: getHealth
+      responses:
+        '200':
+          description: API is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /api/v1/targets:
+    get:
+      tags:
+        - targets
+      summary: List all monitoring targets
+      description: Get a list of all configured monitoring targets
+      operationId: listTargets
+      responses:
+        '200':
+          description: List of targets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Target'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      tags:
+        - targets
+      summary: Create a new monitoring target
+      description: Create a new target to monitor (HTTP, TCP, DNS, or ICMP)
+      operationId: createTarget
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Target'
+      responses:
+        '201':
+          description: Target created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Target'
+        '400':
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/targets/{id}:
+    get:
+      tags:
+        - targets
+      summary: Get a monitoring target by ID
+      description: Get detailed information about a specific monitoring target
+      operationId: getTarget
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Target ID
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Target details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Target'
+        '404':
+          description: Target not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      tags:
+        - targets
+      summary: Update a monitoring target
+      description: Update an existing monitoring target configuration
+      operationId: updateTarget
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Target ID
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Target'
+      responses:
+        '200':
+          description: Target updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Target'
+        '400':
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Target not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      tags:
+        - targets
+      summary: Delete a monitoring target
+      description: Remove a monitoring target from the system
+      operationId: deleteTarget
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Target ID
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Target deleted successfully
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/targets/{id}/results:
+    get:
+      tags:
+        - targets
+      summary: Get check results for a target
+      description: Get historical check results for a specific monitoring target
+      operationId: getTargetResults
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Target ID
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          description: Maximum number of results
+          schema:
+            type: integer
+            default: 100
+        - name: offset
+          in: query
+          required: false
+          description: Number of results to skip
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: List of check results
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CheckResult'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/targets/{id}/stats:
+    get:
+      tags:
+        - targets
+      summary: Get statistics for a target
+      description: Get aggregated statistics for a monitoring target over a specified period
+      operationId: getTargetStats
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Target ID
+          schema:
+            type: string
+        - name: period
+          in: query
+          required: false
+          description: Time period for stats (e.g., 24h, 7d)
+          schema:
+            type: string
+            default: "24h"
+      responses:
+        '200':
+          description: Target statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckStats'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/incidents:
+    get:
+      tags:
+        - incidents
+      summary: List all incidents
+      description: Get a list of all incidents with pagination
+      operationId: listIncidents
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          description: Maximum number of results
+          schema:
+            type: integer
+            default: 100
+        - name: offset
+          in: query
+          required: false
+          description: Number of results to skip
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: List of incidents
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Incident'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/incidents/{id}:
+    get:
+      tags:
+        - incidents
+      summary: Get an incident by ID
+      description: Get detailed information about a specific incident
+      operationId: getIncident
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Incident ID
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Incident details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Incident'
+        '400':
+          description: Invalid incident ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Incident not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/incidents/ongoing:
+    get:
+      tags:
+        - incidents
+      summary: List ongoing incidents
+      description: Get a list of all currently ongoing (unresolved) incidents
+      operationId: listOngoingIncidents
+      responses:
+        '200':
+          description: List of ongoing incidents
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Incident'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    HealthResponse:
+      type: object
+      required:
+        - status
+        - timestamp
+        - version
+      properties:
+        status:
+          type: string
+          example: "ok"
+        timestamp:
+          type: string
+          format: date-time
+        version:
+          type: string
+          example: "dev"
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+
+    Target:
+      type: object
+      required:
+        - id
+        - name
+        - type
+        - interval
+        - timeout
+        - enabled
+      properties:
+        id:
+          type: string
+          example: "my-api-service"
+        name:
+          type: string
+          example: "My API Service"
+        type:
+          type: string
+          enum: [http, tcp, dns, icmp]
+          example: "http"
+        config:
+          type: object
+          additionalProperties: true
+          description: Configuration specific to the target type
+        interval:
+          type: integer
+          format: int64
+          description: Check interval in nanoseconds
+          example: 30000000000
+        timeout:
+          type: integer
+          format: int64
+          description: Timeout in nanoseconds
+          example: 10000000000
+        enabled:
+          type: boolean
+          example: true
+        tags:
+          type: array
+          items:
+            type: string
+          example: ["production", "api"]
+        description:
+          type: string
+          example: "Production API health endpoint"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CheckResult:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        target_id:
+          type: string
+        status:
+          type: string
+          enum: [success, warning, failure]
+        message:
+          type: string
+        response_time_ms:
+          type: integer
+        metadata:
+          type: object
+          additionalProperties: true
+        checked_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+
+    CheckStats:
+      type: object
+      properties:
+        target_id:
+          type: string
+        period_start:
+          type: string
+          format: date-time
+        period_end:
+          type: string
+          format: date-time
+        total_checks:
+          type: integer
+        successful_checks:
+          type: integer
+        failed_checks:
+          type: integer
+        warning_checks:
+          type: integer
+        avg_response_time_ms:
+          type: number
+          format: float
+        uptime_percentage:
+          type: number
+          format: float
+
+    Incident:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        target_id:
+          type: string
+        alert_id:
+          type: string
+        status:
+          type: string
+          enum: [ongoing, resolved]
+        severity:
+          type: string
+          enum: [info, warning, critical]
+        title:
+          type: string
+        description:
+          type: string
+        started_at:
+          type: string
+          format: date-time
+        resolved_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time

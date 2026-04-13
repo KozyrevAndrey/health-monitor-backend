@@ -11,6 +11,7 @@ import (
 	"github.com/go-chi/cors"
 	"github.com/rs/zerolog"
 	"health-monitor/internal/domain"
+	"health-monitor/internal/generated"
 	"health-monitor/pkg/config"
 )
 
@@ -20,6 +21,8 @@ type Server struct {
 	targetRepo      domain.TargetRepository
 	checkResultRepo domain.CheckResultRepository
 	incidentRepo    domain.IncidentRepository
+	notifierRepo    domain.NotifierRepository
+	alertManager    domain.AlertManager
 	scheduler       domain.Scheduler
 	log             zerolog.Logger
 }
@@ -29,6 +32,8 @@ func NewServer(
 	targetRepo domain.TargetRepository,
 	checkResultRepo domain.CheckResultRepository,
 	incidentRepo domain.IncidentRepository,
+	notifierRepo domain.NotifierRepository,
+	alertManager domain.AlertManager,
 	scheduler domain.Scheduler,
 	log zerolog.Logger,
 ) *Server {
@@ -36,6 +41,8 @@ func NewServer(
 		targetRepo:      targetRepo,
 		checkResultRepo: checkResultRepo,
 		incidentRepo:    incidentRepo,
+		notifierRepo:    notifierRepo,
+		alertManager:    alertManager,
 		scheduler:       scheduler,
 		log:             log,
 	}
@@ -70,34 +77,28 @@ func (s *Server) setupRouter() chi.Router {
 		MaxAge:           300,
 	}))
 
-	r.Get("/health", s.handleHealth)
-
+	// Web UI and static files
 	r.Get("/", s.handleIndex)
 	fileServer := http.FileServer(http.Dir("./web/static"))
 	r.Handle("/static/*", http.StripPrefix("/static", fileServer))
 
-	r.Route("/api/v1", func(r chi.Router) {
-		r.Route("/targets", func(r chi.Router) {
-			r.Get("/", s.handleListTargets)
-			r.Post("/", s.handleCreateTarget)
-			r.Get("/{id}", s.handleGetTarget)
-			r.Put("/{id}", s.handleUpdateTarget)
-			r.Delete("/{id}", s.handleDeleteTarget)
-			r.Get("/{id}/results", s.handleGetTargetResults)
-			r.Get("/{id}/stats", s.handleGetTargetStats)
-		})
+	// Swagger UI - serves interactive API documentation
+	r.Get("/swagger", s.handleSwaggerUI)
+	r.Get("/openapi.yaml", s.handleOpenAPISpec)
 
-		r.Route("/results", func(r chi.Router) {
-			r.Get("/", s.handleListResults)
-			r.Get("/{id}", s.handleGetResult)
-		})
-
-		r.Route("/incidents", func(r chi.Router) {
-			r.Get("/", s.handleListIncidents)
-			r.Get("/{id}", s.handleGetIncident)
-			r.Get("/ongoing", s.handleListOngoingIncidents)
-		})
+	// Notifier CRUD routes (not in OpenAPI spec)
+	r.Route("/api/v1/notifiers", func(r chi.Router) {
+		r.Get("/", s.handleListNotifiers)
+		r.Post("/", s.handleCreateNotifier)
+		r.Get("/{id}", s.handleGetNotifier)
+		r.Put("/{id}", s.handleUpdateNotifier)
+		r.Delete("/{id}", s.handleDeleteNotifier)
 	})
+
+	// Create OpenAPI adapter and register all API routes automatically
+	// This replaces manual route registration with generated routes from openapi.yaml
+	adapter := NewOpenAPIAdapter(s)
+	generated.HandlerFromMux(adapter, r)
 
 	return r
 }
