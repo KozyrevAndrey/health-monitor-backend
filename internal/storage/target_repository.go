@@ -100,10 +100,21 @@ func (r *TargetRepository) Update(ctx context.Context, target *domain.Target) er
 		return fmt.Errorf("failed to convert target to model: %w", err)
 	}
 
+	// Use map to avoid GORM skipping zero-value bool fields (enabled=false)
 	result := r.db.WithContext(ctx).
 		Model(&models.Target{}).
 		Where("id = ?", target.ID).
-		Updates(model)
+		Updates(map[string]interface{}{
+			"name":        model.Name,
+			"type":        model.Type,
+			"config":      model.Config,
+			"interval":    model.Interval,
+			"timeout":     model.Timeout,
+			"enabled":     model.Enabled,
+			"tags":        model.Tags,
+			"description": model.Description,
+			"updated_at":  model.UpdatedAt,
+		})
 
 	if result.Error != nil {
 		return fmt.Errorf("failed to update target: %w", result.Error)
