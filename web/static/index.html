@@ -368,6 +368,79 @@
             font-size: 0.875rem;
             color: #666;
         }
+
+        .notifier-card {
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 1rem;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+        }
+
+        .notifier-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 2px 8px rgba(102,126,234,0.1);
+        }
+
+        .notifier-card.disabled {
+            opacity: 0.55;
+        }
+
+        .notifier-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex: 1;
+        }
+
+        .notifier-type-badge {
+            padding: 0.3rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+        }
+
+        .badge-telegram    { background: #e0f2fe; color: #0369a1; }
+        .badge-gmail       { background: #fce7f3; color: #9d174d; }
+        .badge-gmail_oauth { background: #fdf4ff; color: #7e22ce; }
+        .badge-email       { background: #ede9fe; color: #6d28d9; }
+
+        .notifier-info { flex: 1; }
+        .notifier-id   { font-weight: 600; font-size: 1rem; }
+        .notifier-meta { font-size: 0.8rem; color: #888; margin-top: 2px; }
+
+        .toggle-btn {
+            padding: 0.3rem 0.9rem;
+            border-radius: 20px;
+            border: none;
+            cursor: pointer;
+            font-size: 0.75rem;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .toggle-on  { background: #d1fae5; color: #065f46; }
+        .toggle-off { background: #fee2e2; color: #991b1b; }
+        .toggle-on:hover  { background: #a7f3d0; }
+        .toggle-off:hover { background: #fecaca; }
+
+        .notifier-actions { display: flex; gap: 0.5rem; align-items: center; }
+
+        .dynamic-fields { display: none; }
+        .dynamic-fields.active { display: block; }
+
+        .tag-input-wrapper { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center;
+            border: 1px solid #d1d5db; border-radius: 5px; padding: 0.4rem; min-height: 38px; }
+        .tag { background: #e0e7ff; color: #3730a3; padding: 0.2rem 0.5rem; border-radius: 12px;
+            font-size: 0.75rem; display: flex; align-items: center; gap: 0.3rem; }
+        .tag-remove { cursor: pointer; font-size: 0.9rem; line-height: 1; }
+        .tag-input  { border: none; outline: none; flex: 1; min-width: 120px; font-size: 0.875rem; }
     </style>
 </head>
 <body>
@@ -409,6 +482,18 @@
                     <div class="spinner"></div>
                     <p>Loading targets...</p>
                 </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-header">
+                <h2 class="section-title">Notifiers</h2>
+                <div class="btn-group">
+                    <button class="btn btn-success" onclick="showCreateNotifierModal()">➕ Add Notifier</button>
+                </div>
+            </div>
+            <div id="notifiers-container">
+                <div class="loading"><div class="spinner"></div><p>Loading notifiers...</p></div>
             </div>
         </div>
 
@@ -495,6 +580,157 @@
                 <div class="btn-group">
                     <button type="submit" class="btn btn-success">💾 Save</button>
                     <button type="button" class="btn" onclick="closeModal()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Notifier Modal -->
+    <div id="notifierModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="notifierModalTitle">Add Notifier</h2>
+                <button class="close-btn" onclick="closeNotifierModal()">&times;</button>
+            </div>
+            <form id="notifierForm" onsubmit="saveNotifier(event)">
+                <input type="hidden" id="notifierId" />
+
+                <div class="form-group">
+                    <label class="form-label">ID *</label>
+                    <input type="text" id="formNotifierId" class="form-input" required
+                           pattern="[a-z0-9-]+" placeholder="gmail-alerts"
+                           title="Only lowercase letters, numbers, and hyphens">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Type *</label>
+                    <select id="formNotifierType" class="form-select" required onchange="onNotifierTypeChange()">
+                        <option value="gmail_oauth">Gmail OAuth2 (личный аккаунт)</option>
+                        <option value="telegram">Telegram Bot</option>
+                        <option value="email">Email (SMTP)</option>
+                        <option value="gmail">Gmail (Service Account + Domain Delegation)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="formNotifierEnabled" class="form-checkbox" checked>
+                        <span class="form-label" style="display:inline;">Enabled</span>
+                    </label>
+                </div>
+
+                <!-- Gmail OAuth2 fields -->
+                <div id="fields-gmail_oauth" class="dynamic-fields active">
+                    <div class="form-group">
+                        <label class="form-label">Credentials File *</label>
+                        <input type="text" id="formOAuthCred" class="form-input"
+                               placeholder="secrets/gmail-token.json">
+                        <small style="color:#888">OAuth2 client JSON из Google Cloud Console</small>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Token File *</label>
+                        <input type="text" id="formOAuthToken" class="form-input"
+                               placeholder="secrets/gmail-oauth-token.json">
+                        <small style="color:#888">Сгенерирован скриптом <code>gmail_auth.go</code></small>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">From *</label>
+                        <input type="email" id="formOAuthFrom" class="form-input"
+                               placeholder="andrey0kozyrev0@gmail.com">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">To (Enter для добавления) *</label>
+                        <div class="tag-input-wrapper" id="oauthToWrapper" onclick="document.getElementById('oauthToInput').focus()">
+                            <input type="text" id="oauthToInput" class="tag-input" placeholder="email@example.com"
+                                   onkeydown="addTag(event,'oauthToWrapper','oauthToInput','oauthToTags')">
+                        </div>
+                        <input type="hidden" id="oauthToTags" value="[]">
+                    </div>
+                </div>
+
+                <!-- Gmail fields -->
+                <div id="fields-gmail" class="dynamic-fields">
+                    <div class="form-group">
+                        <label class="form-label">Service Account File Path *</label>
+                        <input type="text" id="formGmailSAFile" class="form-input"
+                               placeholder="secrets/google-service-account.json">
+                        <small style="color:#888">Path inside the container (mounted via volume)</small>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">From *</label>
+                        <input type="email" id="formGmailFrom" class="form-input" placeholder="andrey0kozyrev0@gmail.com">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">To (press Enter to add) *</label>
+                        <div class="tag-input-wrapper" id="gmailToWrapper" onclick="document.getElementById('gmailToInput').focus()">
+                            <input type="text" id="gmailToInput" class="tag-input" placeholder="email@example.com"
+                                   onkeydown="addTag(event,'gmailToWrapper','gmailToInput','gmailToTags')">
+                        </div>
+                        <input type="hidden" id="gmailToTags" value="[]">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Impersonate User (optional, Google Workspace only)</label>
+                        <input type="email" id="formGmailImpersonate" class="form-input" placeholder="user@yourworkspace.com">
+                    </div>
+                </div>
+
+                <!-- Telegram fields -->
+                <div id="fields-telegram" class="dynamic-fields">
+                    <div class="form-group">
+                        <label class="form-label">Bot Token *</label>
+                        <input type="text" id="formTgToken" class="form-input" placeholder="123456:ABC-DEF...">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Chat IDs (press Enter to add) *</label>
+                        <div class="tag-input-wrapper" id="tgChatWrapper" onclick="document.getElementById('tgChatInput').focus()">
+                            <input type="text" id="tgChatInput" class="tag-input" placeholder="401089055"
+                                   onkeydown="addTag(event,'tgChatWrapper','tgChatInput','tgChatTags')">
+                        </div>
+                        <input type="hidden" id="tgChatTags" value="[]">
+                    </div>
+                </div>
+
+                <!-- Email (SMTP) fields -->
+                <div id="fields-email" class="dynamic-fields">
+                    <div class="form-group">
+                        <label class="form-label">SMTP Host *</label>
+                        <input type="text" id="formSmtpHost" class="form-input" placeholder="smtp.gmail.com">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">SMTP Port</label>
+                        <input type="number" id="formSmtpPort" class="form-input" value="587" placeholder="587">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">SMTP User</label>
+                        <input type="text" id="formSmtpUser" class="form-input" placeholder="you@gmail.com">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">SMTP Password</label>
+                        <input type="password" id="formSmtpPass" class="form-input" placeholder="Leave blank to keep existing">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">From *</label>
+                        <input type="email" id="formEmailFrom" class="form-input" placeholder="you@gmail.com">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">To (press Enter to add) *</label>
+                        <div class="tag-input-wrapper" id="emailToWrapper" onclick="document.getElementById('emailToInput').focus()">
+                            <input type="text" id="emailToInput" class="tag-input" placeholder="recipient@example.com"
+                                   onkeydown="addTag(event,'emailToWrapper','emailToInput','emailToTags')">
+                        </div>
+                        <input type="hidden" id="emailToTags" value="[]">
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="formSmtpTLS" class="form-checkbox" checked>
+                            <span class="form-label" style="display:inline;">Use TLS</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="btn-group" style="margin-top:1rem;">
+                    <button type="submit" class="btn btn-success">💾 Save</button>
+                    <button type="button" class="btn" onclick="closeNotifierModal()">Cancel</button>
                 </div>
             </form>
         </div>
@@ -771,9 +1007,258 @@
             }
         }
 
+        // ── Notifiers ──────────────────────────────────────────────────────────
+
+        async function loadNotifiers() {
+            try {
+                const notifiers = await fetchAPI('/api/v1/notifiers');
+                const container = document.getElementById('notifiers-container');
+
+                if (!notifiers || notifiers.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">🔔</div>
+                            <p>No notifiers configured yet</p>
+                            <button class="btn btn-success" onclick="showCreateNotifierModal()" style="margin-top:1rem;">➕ Add Notifier</button>
+                        </div>`;
+                    return;
+                }
+
+                const html = notifiers.map(n => {
+                    const badgeClass = `badge-${n.type}`;
+                    const toggleLabel = n.enabled ? 'Enabled' : 'Disabled';
+                    const toggleClass = n.enabled ? 'toggle-on' : 'toggle-off';
+                    const meta = notifierMeta(n);
+                    return `
+                        <div class="notifier-card${n.enabled ? '' : ' disabled'}">
+                            <div class="notifier-left">
+                                <span class="notifier-type-badge ${badgeClass}">${n.type}</span>
+                                <div class="notifier-info">
+                                    <div class="notifier-id">${n.id}</div>
+                                    <div class="notifier-meta">${meta}</div>
+                                </div>
+                            </div>
+                            <div class="notifier-actions">
+                                <button class="toggle-btn ${toggleClass}"
+                                        onclick="toggleNotifier('${n.id}', ${n.enabled})">${toggleLabel}</button>
+                                <button class="btn btn-small" onclick='showEditNotifierModal(${JSON.stringify(n).replace(/'/g,"&#39;")})'>✏️ Edit</button>
+                                <button class="btn btn-small btn-danger" onclick="deleteNotifier('${n.id}')">🗑️</button>
+                            </div>
+                        </div>`;
+                }).join('');
+
+                container.innerHTML = `<div class="targets-grid" style="gap:0.75rem;">${html}</div>`;
+            } catch (err) {
+                document.getElementById('notifiers-container').innerHTML =
+                    `<div class="empty-state"><div class="empty-state-icon">❌</div><p>${err.message}</p></div>`;
+            }
+        }
+
+        function notifierMeta(n) {
+            const c = n.config || {};
+            if (n.type === 'gmail_oauth') return `from: ${c.from || '—'} → ${(c.to || []).join(', ')}`;
+            if (n.type === 'gmail')       return `from: ${c.from || '—'} → ${(c.to || []).join(', ')}`;
+            if (n.type === 'telegram')    return `chat ids: ${(c.chat_ids || []).join(', ')}`;
+            if (n.type === 'email')       return `${c.smtp_host || ''}:${c.smtp_port || ''} from: ${c.from || '—'}`;
+            return '';
+        }
+
+        async function toggleNotifier(id, currentEnabled) {
+            try {
+                const cfg = await fetchAPI(`/api/v1/notifiers/${id}`);
+                cfg.enabled = !currentEnabled;
+                await fetchAPI(`/api/v1/notifiers/${id}`, { method: 'PUT', body: JSON.stringify(cfg) });
+                await loadNotifiers();
+            } catch (err) { alert('Failed to toggle: ' + err.message); }
+        }
+
+        async function deleteNotifier(id) {
+            if (!confirm(`Delete notifier "${id}"?`)) return;
+            try {
+                await fetchAPI(`/api/v1/notifiers/${id}`, { method: 'DELETE' });
+                await loadNotifiers();
+            } catch (err) { alert('Failed to delete: ' + err.message); }
+        }
+
+        function onNotifierTypeChange() {
+            const type = document.getElementById('formNotifierType').value;
+            ['gmail_oauth','gmail','telegram','email'].forEach(t => {
+                document.getElementById(`fields-${t}`).classList.toggle('active', t === type);
+            });
+        }
+
+        // Tag input helper (for to[] and chat_ids[])
+        function addTag(event, wrapperId, inputId, hiddenId) {
+            if (event.key !== 'Enter' && event.key !== ',') return;
+            event.preventDefault();
+            const input = document.getElementById(inputId);
+            const val = input.value.trim();
+            if (!val) return;
+            const tags = JSON.parse(document.getElementById(hiddenId).value);
+            if (tags.includes(val)) { input.value = ''; return; }
+            tags.push(val);
+            document.getElementById(hiddenId).value = JSON.stringify(tags);
+            const tag = document.createElement('span');
+            tag.className = 'tag';
+            tag.dataset.value = val;
+            tag.innerHTML = `${val} <span class="tag-remove" onclick="removeTag(this,'${hiddenId}')">×</span>`;
+            document.getElementById(wrapperId).insertBefore(tag, input);
+            input.value = '';
+        }
+
+        function removeTag(btn, hiddenId) {
+            const tagEl = btn.parentElement;
+            const val = tagEl.dataset.value;
+            tagEl.remove();
+            const tags = JSON.parse(document.getElementById(hiddenId).value);
+            document.getElementById(hiddenId).value = JSON.stringify(tags.filter(t => t !== val));
+        }
+
+        function setTags(wrapperId, inputId, hiddenId, values) {
+            // Clear existing tags (keep input)
+            const wrapper = document.getElementById(wrapperId);
+            [...wrapper.querySelectorAll('.tag')].forEach(t => t.remove());
+            document.getElementById(hiddenId).value = JSON.stringify([]);
+            (values || []).forEach(v => {
+                const fakeEvent = { key: 'Enter', preventDefault: () => {} };
+                document.getElementById(inputId).value = v;
+                addTag(fakeEvent, wrapperId, inputId, hiddenId);
+            });
+        }
+
+        function showCreateNotifierModal() {
+            document.getElementById('notifierModalTitle').textContent = 'Add Notifier';
+            document.getElementById('notifierForm').reset();
+            document.getElementById('notifierId').value = '';
+            document.getElementById('formNotifierId').readOnly = false;
+            document.getElementById('formNotifierEnabled').checked = true;
+            document.getElementById('formNotifierType').value = 'gmail_oauth';
+            onNotifierTypeChange();
+            setTags('oauthToWrapper','oauthToInput','oauthToTags',[]);
+            setTags('gmailToWrapper','gmailToInput','gmailToTags',[]);
+            setTags('tgChatWrapper','tgChatInput','tgChatTags',[]);
+            setTags('emailToWrapper','emailToInput','emailToTags',[]);
+            document.getElementById('notifierModal').classList.add('active');
+        }
+
+        function showEditNotifierModal(n) {
+            document.getElementById('notifierModalTitle').textContent = 'Edit Notifier';
+            document.getElementById('notifierId').value = n.id;
+            document.getElementById('formNotifierId').value = n.id;
+            document.getElementById('formNotifierId').readOnly = true;
+            document.getElementById('formNotifierEnabled').checked = n.enabled;
+            document.getElementById('formNotifierType').value = n.type;
+            onNotifierTypeChange();
+            const c = n.config || {};
+            if (n.type === 'gmail_oauth') {
+                document.getElementById('formOAuthCred').value  = c.credentials_file || 'secrets/gmail-token.json';
+                document.getElementById('formOAuthToken').value = c.token_file || 'secrets/gmail-oauth-token.json';
+                document.getElementById('formOAuthFrom').value  = c.from || '';
+                setTags('oauthToWrapper','oauthToInput','oauthToTags', c.to || []);
+            } else if (n.type === 'gmail') {
+                document.getElementById('formGmailSAFile').value = c.service_account_file || '';
+                document.getElementById('formGmailFrom').value = c.from || '';
+                setTags('gmailToWrapper','gmailToInput','gmailToTags', c.to || []);
+                document.getElementById('formGmailImpersonate').value = c.impersonate_user || '';
+            } else if (n.type === 'telegram') {
+                document.getElementById('formTgToken').value = c.bot_token || '';
+                setTags('tgChatWrapper','tgChatInput','tgChatTags', c.chat_ids || []);
+            } else if (n.type === 'email') {
+                document.getElementById('formSmtpHost').value = c.smtp_host || '';
+                document.getElementById('formSmtpPort').value = c.smtp_port || 587;
+                document.getElementById('formSmtpUser').value = c.smtp_user || '';
+                document.getElementById('formSmtpPass').value = '';
+                document.getElementById('formEmailFrom').value = c.from || '';
+                setTags('emailToWrapper','emailToInput','emailToTags', c.to || []);
+                document.getElementById('formSmtpTLS').checked = c.use_tls !== false;
+            }
+            document.getElementById('notifierModal').classList.add('active');
+        }
+
+        function closeNotifierModal() {
+            document.getElementById('notifierModal').classList.remove('active');
+        }
+
+        // Flush any uncommitted text in tag inputs before reading their value
+        function flushTagInputs() {
+            [
+                ['oauthToWrapper',  'oauthToInput',  'oauthToTags'],
+                ['gmailToWrapper',  'gmailToInput',  'gmailToTags'],
+                ['tgChatWrapper',   'tgChatInput',   'tgChatTags'],
+                ['emailToWrapper',  'emailToInput',  'emailToTags'],
+            ].forEach(([w, i, h]) => {
+                const input = document.getElementById(i);
+                if (input && input.value.trim()) {
+                    addTag({ key: 'Enter', preventDefault: () => {} }, w, i, h);
+                }
+            });
+        }
+
+        async function saveNotifier(event) {
+            event.preventDefault();
+            flushTagInputs();
+            const id = document.getElementById('formNotifierId').value;
+            const editId = document.getElementById('notifierId').value;
+            const type = document.getElementById('formNotifierType').value;
+            const enabled = document.getElementById('formNotifierEnabled').checked;
+
+            let config = {};
+            if (type === 'gmail_oauth') {
+                config = {
+                    credentials_file: document.getElementById('formOAuthCred').value  || 'secrets/gmail-token.json',
+                    token_file:       document.getElementById('formOAuthToken').value || 'secrets/gmail-oauth-token.json',
+                    from: document.getElementById('formOAuthFrom').value,
+                    to:   JSON.parse(document.getElementById('oauthToTags').value),
+                };
+            } else if (type === 'gmail') {
+                config = {
+                    service_account_file: document.getElementById('formGmailSAFile').value,
+                    from: document.getElementById('formGmailFrom').value,
+                    to: JSON.parse(document.getElementById('gmailToTags').value),
+                    impersonate_user: document.getElementById('formGmailImpersonate').value,
+                };
+            } else if (type === 'telegram') {
+                const token = document.getElementById('formTgToken').value;
+                config = {
+                    chat_ids: JSON.parse(document.getElementById('tgChatTags').value),
+                };
+                if (token && token !== '***') config.bot_token = token;
+            } else if (type === 'email') {
+                const pass = document.getElementById('formSmtpPass').value;
+                config = {
+                    smtp_host: document.getElementById('formSmtpHost').value,
+                    smtp_port: parseInt(document.getElementById('formSmtpPort').value) || 587,
+                    smtp_user: document.getElementById('formSmtpUser').value,
+                    from: document.getElementById('formEmailFrom').value,
+                    to: JSON.parse(document.getElementById('emailToTags').value),
+                    use_tls: document.getElementById('formSmtpTLS').checked,
+                };
+                if (pass) config.smtp_password = pass;
+            }
+
+            const payload = { id, type, enabled, config };
+
+            try {
+                if (editId) {
+                    await fetchAPI(`/api/v1/notifiers/${editId}`, { method: 'PUT', body: JSON.stringify(payload) });
+                } else {
+                    await fetchAPI('/api/v1/notifiers', { method: 'POST', body: JSON.stringify(payload) });
+                }
+                closeNotifierModal();
+                await loadNotifiers();
+            } catch (err) { alert('Failed to save notifier: ' + err.message); }
+        }
+
+        document.getElementById('notifierModal').addEventListener('click', e => {
+            if (e.target.id === 'notifierModal') closeNotifierModal();
+        });
+
+        // ── Refresh ────────────────────────────────────────────────────────────
+
         async function refreshData() {
             const stats = await loadTargets();
             const activeIncidents = await loadIncidents();
+            await loadNotifiers();
 
             document.getElementById('stat-total').textContent = stats.total;
             document.getElementById('stat-healthy').textContent = stats.healthy;
