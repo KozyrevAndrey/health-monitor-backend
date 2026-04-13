@@ -116,6 +116,24 @@ type Scheduler interface {
 	IsRunning() bool
 }
 
+// NotifierRepository defines the interface for notifier config storage operations
+type NotifierRepository interface {
+	// Create creates a new notifier config
+	Create(ctx context.Context, cfg *NotifierConfig) error
+
+	// Get retrieves a notifier config by ID
+	Get(ctx context.Context, id string) (*NotifierConfig, error)
+
+	// List retrieves all notifier configs
+	List(ctx context.Context) ([]*NotifierConfig, error)
+
+	// Update updates an existing notifier config
+	Update(ctx context.Context, cfg *NotifierConfig) error
+
+	// Delete deletes a notifier config by ID
+	Delete(ctx context.Context, id string) error
+}
+
 // AlertManager defines the interface for managing alerts
 type AlertManager interface {
 	// ProcessCheckResult processes a check result and determines if alerts should be sent
@@ -129,6 +147,9 @@ type AlertManager interface {
 
 	// GetNotifier retrieves a notifier by type
 	GetNotifier(notifierType string) (Notifier, error)
+
+	// ClearNotifiers removes all registered notifiers
+	ClearNotifiers()
 }
 
 // CheckerRegistry defines the interface for managing checkers
