@@ -66,6 +66,13 @@ func (m *Manager) GetNotifier(notifierType string) (domain.Notifier, error) {
 	return notifier, nil
 }
 
+func (m *Manager) ClearNotifiers() {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.notifiers = make(map[string]domain.Notifier)
+	m.log.Debug().Msg("All notifiers cleared")
+}
+
 func (m *Manager) ProcessCheckResult(ctx context.Context, result *domain.CheckResult) error {
 	m.mu.Lock()
 	state, exists := m.states[result.TargetID]
