@@ -16,8 +16,9 @@ services:
       - ./configs:/configs:ro
       # Persistent data directory
       - ./data:/data
-      # Optional: mount custom config file
-      # - ./my-config.yaml:/etc/health-monitor/config.yaml:ro
+      # Secrets directory (gitignored) — place google-service-account.json here
+      # Create manually: mkdir secrets && cp your-sa-file.json secrets/google-service-account.json
+      - ./secrets:/app/secrets:ro
     environment:
       # Override config via environment variables
       - HEALTH_MONITOR_SERVER_HOST=0.0.0.0

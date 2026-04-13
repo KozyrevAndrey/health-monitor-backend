@@ -42,6 +42,9 @@ data/
 logs/
 *.log
 
+# Secrets — place service account JSON files here, never commit
+secrets/
+
 # Temporary files
 tmp/
 temp/
@@ -49,3 +52,7 @@ temp/
 # Build artifacts
 *.tar.gz
 *.zip
+
+# Compiled binary (project root)
+/server
+/testgmail

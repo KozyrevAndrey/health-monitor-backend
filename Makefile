@@ -29,13 +29,13 @@ build: ## Build the application
 	@echo "Building $(BINARY_NAME)..."
 	@mkdir -p $(BIN_DIR)
 	$(GOBUILD) $(LDFLAGS) -o $(BIN_DIR)/$(BINARY_NAME) ./cmd/server
-	@echo " Build complete: $(BIN_DIR)/$(BINARY_NAME)"
+	@echo "Build complete: $(BIN_DIR)/$(BINARY_NAME)"
 
 build-linux: ## Build for Linux
 	@echo "Building for Linux..."
 	@mkdir -p $(BIN_DIR)
 	GOOS=linux GOARCH=amd64 $(GOBUILD) $(LDFLAGS) -o $(BIN_DIR)/$(BINARY_NAME)-linux-amd64 ./cmd/server
-	@echo " Build complete: $(BIN_DIR)/$(BINARY_NAME)-linux-amd64"
+	@echo "Build complete: $(BIN_DIR)/$(BINARY_NAME)-linux-amd64"
 
 build-all: ## Build for all platforms
 	@echo "Building for all platforms..."
@@ -44,41 +44,41 @@ build-all: ## Build for all platforms
 	GOOS=darwin GOARCH=amd64 $(GOBUILD) $(LDFLAGS) -o $(BIN_DIR)/$(BINARY_NAME)-darwin-amd64 ./cmd/server
 	GOOS=darwin GOARCH=arm64 $(GOBUILD) $(LDFLAGS) -o $(BIN_DIR)/$(BINARY_NAME)-darwin-arm64 ./cmd/server
 	GOOS=windows GOARCH=amd64 $(GOBUILD) $(LDFLAGS) -o $(BIN_DIR)/$(BINARY_NAME)-windows-amd64.exe ./cmd/server
-	@echo " All builds complete"
+	@echo "All builds complete"
 
 test: ## Run tests
 	@echo "Running tests..."
 	$(GOTEST) -v -race -coverprofile=coverage.out ./...
-	@echo " Tests complete"
+	@echo "Tests complete"
 
 test-coverage: test ## Run tests with coverage report
 	@echo "Generating coverage report..."
 	$(GOCMD) tool cover -html=coverage.out -o coverage.html
-	@echo " Coverage report: coverage.html"
+	@echo "Coverage report: coverage.html"
 
 lint: ## Run linter
 	@echo "Running linter..."
 	@if command -v golangci-lint >/dev/null 2>&1; then \
 		golangci-lint run --timeout=5m; \
-		echo " Lint complete"; \
+		echo "Lint complete"; \
 	else \
-		echo "  golangci-lint not installed. Run: curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $$(go env GOPATH)/bin"; \
+		echo "golangci-lint not installed. Run: curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $$(go env GOPATH)/bin"; \
 	fi
 
 fmt: ## Format code
 	@echo "Formatting code..."
 	$(GOFMT) ./...
-	@echo " Format complete"
+	@echo "Format complete"
 
 vet: ## Run go vet
 	@echo "Running go vet..."
 	$(GOVET) ./...
-	@echo " Vet complete"
+	@echo "Vet complete"
 
 tidy: ## Tidy go modules
 	@echo "Tidying modules..."
 	$(GOMOD) tidy
-	@echo " Tidy complete"
+	@echo "Tidy complete"
 
 run: build ## Build and run the application
 	@echo "Starting $(BINARY_NAME)..."
@@ -94,16 +94,16 @@ clean: ## Clean build artifacts
 	@echo "Cleaning..."
 	@rm -rf $(BIN_DIR)
 	@rm -f coverage.out coverage.html
-	@echo " Clean complete"
+	@echo "Clean complete"
 
 clean-all: clean ## Clean everything including data
 	@rm -rf $(DATA_DIR)
-	@echo " Deep clean complete"
+	@echo "Deep clean complete"
 
 docker-build: ## Build Docker image
 	@echo "Building Docker image..."
 	docker build -t $(BINARY_NAME):$(VERSION) -t $(BINARY_NAME):latest .
-	@echo " Docker build complete"
+	@echo "Docker build complete"
 
 docker-run: ## Run Docker container
 	@echo "Running Docker container..."
@@ -112,12 +112,12 @@ docker-run: ## Run Docker container
 docker-compose-up: ## Start with docker-compose
 	@echo "Starting with docker-compose..."
 	docker-compose up -d
-	@echo " Services started"
+	@echo "Services started"
 
 docker-compose-down: ## Stop docker-compose services
 	@echo "Stopping docker-compose services..."
 	docker-compose down
-	@echo " Services stopped"
+	@echo "Services stopped"
 
 docker-compose-logs: ## View docker-compose logs
 	docker-compose logs -f
@@ -128,13 +128,17 @@ install-deps: ## Install development dependencies
 	@if ! command -v golangci-lint >/dev/null 2>&1; then \
 		curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $$(go env GOPATH)/bin v1.55.2; \
 	fi
-	@echo " Dependencies installed"
+	@echo "Dependencies installed"
 
 validate-config: ## Validate configuration file
 	@echo "Validating configuration..."
 	@$(GOCMD) run ./cmd/server --config configs/example.yaml --version >/dev/null 2>&1 && echo " Configuration valid" || echo " Configuration invalid"
 
+openapi-gen: ## Generate code from OpenAPI specification
+	@./scripts/generate-openapi.sh
+
 version: ## Show version information
 	@./$(BIN_DIR)/$(BINARY_NAME) --version 2>/dev/null || echo "Build the binary first with 'make build'"
 
 .DEFAULT_GOAL := help
+

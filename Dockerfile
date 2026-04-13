@@ -18,6 +18,11 @@ RUN go mod download
 # Copy source code
 COPY . .
 
+# Generate OpenAPI code from specification
+RUN go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@latest && \
+    mkdir -p internal/generated && \
+    oapi-codegen -config api/codegen-config.yaml api/openapi.yaml
+
 # Build the application
 ARG VERSION=dev
 
