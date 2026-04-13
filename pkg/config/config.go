@@ -7,11 +7,9 @@ import (
 
 // Config represents the application configuration
 type Config struct {
-	Server   ServerConfig   `mapstructure:"server"`
-	Database DatabaseConfig `mapstructure:"database"`
-	Logging  LoggingConfig  `mapstructure:"logging"`
-	Targets  []TargetConfig `mapstructure:"targets"`
-	Notifiers []NotifierConfig `mapstructure:"notifiers"`
+	Server    ServerConfig    `mapstructure:"server"`
+	Database  DatabaseConfig  `mapstructure:"database"`
+	Logging   LoggingConfig   `mapstructure:"logging"`
 	Retention RetentionConfig `mapstructure:"retention"`
 }
 
@@ -43,39 +41,6 @@ type LoggingConfig struct {
 	Output string `mapstructure:"output"`
 }
 
-// TargetConfig represents a monitoring target configuration
-type TargetConfig struct {
-	ID          string                 `mapstructure:"id"`
-	Name        string                 `mapstructure:"name"`
-	Type        string                 `mapstructure:"type"`
-	Config      map[string]interface{} `mapstructure:"config"`
-	Interval    string                 `mapstructure:"interval"`
-	Timeout     string                 `mapstructure:"timeout"`
-	Enabled     bool                   `mapstructure:"enabled"`
-	Tags        []string               `mapstructure:"tags"`
-	Description string                 `mapstructure:"description"`
-	AlertRules  []AlertRuleConfig      `mapstructure:"alert_rules"`
-}
-
-// AlertRuleConfig represents alert rule configuration
-type AlertRuleConfig struct {
-	Name                string   `mapstructure:"name"`
-	Enabled             bool     `mapstructure:"enabled"`
-	ConsecutiveFailures int      `mapstructure:"consecutive_failures"`
-	ResponseTimeMs      int      `mapstructure:"response_time_ms"`
-	SSLExpiryDays       int      `mapstructure:"ssl_expiry_days"`
-	Severity            string   `mapstructure:"severity"`
-	NotifierIDs         []string `mapstructure:"notifier_ids"`
-}
-
-// NotifierConfig represents a notifier configuration
-type NotifierConfig struct {
-	ID      string                 `mapstructure:"id"`
-	Type    string                 `mapstructure:"type"`
-	Enabled bool                   `mapstructure:"enabled"`
-	Config  map[string]interface{} `mapstructure:"config"`
-}
-
 // RetentionConfig represents data retention configuration
 type RetentionConfig struct {
 	CheckResults time.Duration `mapstructure:"check_results"`
@@ -95,18 +60,6 @@ func (c *Config) Validate() error {
 
 	if c.Database.Type == "sqlite" && c.Database.Path == "" {
 		return fmt.Errorf("database path is required for SQLite")
-	}
-
-	for _, target := range c.Targets {
-		if target.ID == "" {
-			return fmt.Errorf("target ID is required")
-		}
-		if target.Name == "" {
-			return fmt.Errorf("target name is required for target %s", target.ID)
-		}
-		if target.Type == "" {
-			return fmt.Errorf("target type is required for target %s", target.ID)
-		}
 	}
 
 	return nil
