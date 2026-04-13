@@ -82,8 +82,6 @@ func main() {
 func run(ctx context.Context, cfg *config.Config, log zerolog.Logger) error {
 	log.Info().
 		Str("address", cfg.Server.GetAddress()).
-		Int("targets", len(cfg.Targets)).
-		Int("notifiers", len(cfg.Notifiers)).
 		Msg("Configuration loaded")
 
 	// Initialize database
@@ -108,6 +106,7 @@ func run(ctx context.Context, cfg *config.Config, log zerolog.Logger) error {
 	checkResultRepo := storage.NewCheckResultRepository(db.DB())
 	incidentRepo := storage.NewIncidentRepository(db.DB())
 
+	notifierRepo := storage.NewNotifierRepository(db.DB())
 	log.Info().Msg("Storage layer initialized")
 
 	checkerRegistry := checker.NewDefaultRegistry()
@@ -119,8 +118,8 @@ func run(ctx context.Context, cfg *config.Config, log zerolog.Logger) error {
 	alertManager := alerting.NewManager(targetRepo, checkResultRepo, incidentRepo, log)
 	log.Info().Msg("Alert manager initialized")
 
-	if err := loadNotifiers(cfg, alertManager, log); err != nil {
-		return fmt.Errorf("failed to load notifiers: %w", err)
+	if err := loadNotifiersFromDB(ctx, notifierRepo, alertManager, log); err != nil {
+		return fmt.Errorf("failed to load notifiers from database: %w", err)
 	}
 
 	sched := scheduler.New(checkerRegistry, checkResultRepo, alertManager, log)
@@ -154,7 +153,7 @@ func run(ctx context.Context, cfg *config.Config, log zerolog.Logger) error {
 		log.Info().Int("targets", len(targets)).Msg("Loaded targets from database")
 	}
 
-	apiServer := api.NewServer(cfg.Server, targetRepo, checkResultRepo, incidentRepo, sched, log)
+	apiServer := api.NewServer(cfg.Server, targetRepo, checkResultRepo, incidentRepo, notifierRepo, alertManager, sched, log)
 
 	go func() {
 		if err := apiServer.Start(); err != nil {
@@ -188,59 +187,47 @@ func run(ctx context.Context, cfg *config.Config, log zerolog.Logger) error {
 	return nil
 }
 
-func loadNotifiers(cfg *config.Config, alertManager domain.AlertManager, log zerolog.Logger) error {
-	if len(cfg.Notifiers) == 0 {
-		log.Info().Msg("No notifiers configured")
-		return nil
+// loadNotifiersFromDB loads all enabled notifiers from the database and registers them
+func loadNotifiersFromDB(ctx context.Context, repo domain.NotifierRepository, alertManager domain.AlertManager, log zerolog.Logger) error {
+	cfgs, err := repo.List(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to list notifiers: %w", err)
 	}
 
 	enabledCount := 0
-	for _, notifierCfg := range cfg.Notifiers {
-		if !notifierCfg.Enabled {
-			log.Debug().
-				Str("id", notifierCfg.ID).
-				Str("type", notifierCfg.Type).
-				Msg("Notifier disabled, skipping")
+	for _, cfg := range cfgs {
+		if !cfg.Enabled {
+			log.Debug().Str("id", cfg.ID).Str("type", cfg.Type).Msg("Notifier disabled, skipping")
 			continue
 		}
 
 		var n domain.Notifier
-		var err error
 
-		switch notifierCfg.Type {
+		switch cfg.Type {
 		case "telegram":
-			n, err = notifier.NewTelegramNotifier(notifierCfg.Config, log)
+			n, err = notifier.NewTelegramNotifier(cfg.Config, log)
 		case "email":
-			n, err = notifier.NewEmailNotifier(notifierCfg.Config, log)
+			n, err = notifier.NewEmailNotifier(cfg.Config, log)
+		case "gmail":
+			n, err = notifier.NewGmailNotifier(cfg.Config, log)
+		case "gmail_oauth":
+			n, err = notifier.NewGmailOAuthNotifier(cfg.Config, log)
 		default:
-			log.Warn().
-				Str("id", notifierCfg.ID).
-				Str("type", notifierCfg.Type).
-				Msg("Unknown notifier type, skipping")
+			log.Warn().Str("id", cfg.ID).Str("type", cfg.Type).Msg("Unknown notifier type, skipping")
 			continue
 		}
 
 		if err != nil {
-			return fmt.Errorf("failed to create notifier %s (%s): %w", notifierCfg.ID, notifierCfg.Type, err)
-		}
-
-		if err := n.Validate(notifierCfg.Config); err != nil {
-			return fmt.Errorf("invalid config for notifier %s (%s): %w", notifierCfg.ID, notifierCfg.Type, err)
+			log.Error().Err(err).Str("id", cfg.ID).Msg("Failed to create notifier, skipping")
+			continue
 		}
 
 		alertManager.RegisterNotifier(n)
 		enabledCount++
 
-		log.Info().
-			Str("id", notifierCfg.ID).
-			Str("type", notifierCfg.Type).
-			Msg("Notifier registered")
+		log.Info().Str("id", cfg.ID).Str("type", cfg.Type).Msg("Notifier registered from database")
 	}
 
-	log.Info().
-		Int("enabled", enabledCount).
-		Int("total", len(cfg.Notifiers)).
-		Msg("Notifiers loaded")
-
+	log.Info().Int("enabled", enabledCount).Int("total", len(cfgs)).Msg("Notifiers loaded from database")
 	return nil
 }
