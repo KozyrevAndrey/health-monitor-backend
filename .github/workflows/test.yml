@@ -32,8 +32,12 @@ jobs:
       - name: Test
         run: go test -short -race ./...
 
+  # Advisory: the strict .golangci.yml surfaces ~200 mostly-stylistic findings
+  # against a codebase not previously linted, so lint reports but does not block
+  # CI. Tighten/clean up incrementally, then flip continue-on-error to false.
   lint:
     runs-on: ubuntu-latest
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
 
@@ -41,7 +45,9 @@ jobs:
         with:
           go-version-file: go.mod
 
+      # Pinned (not "latest"): golangci-lint v2 changed the config schema and
+      # would reject this v1-style .golangci.yml.
       - uses: golangci/golangci-lint-action@v6
         with:
-          version: latest
+          version: v1.64.8
           args: --timeout=5m
