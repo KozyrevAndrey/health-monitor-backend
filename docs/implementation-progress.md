@@ -80,7 +80,7 @@
 ### Deployment & CI
 - [x] **Production docker-compose** (`docker-compose.prod.yml`) + Traefik labels + `DOMAIN`/basic-auth env (`a3a9f9f`, `5d4d98a`, `578b240`)
 - [x] `.env` / `.env.example`, mount secrets volume (`4bd3014`)
-- [x] **CI** (`.github/workflows/test.yml`): go vet + build + `go test -short -race` + golangci-lint на push/PR ✨
+- [x] **CI** (`.github/workflows/test.yml`): go vet + build + `go test -short -race` (блокирующий) + golangci-lint (advisory, ~200 stylistic findings на не-линтованном коде) на push/PR ✨
 - [x] **Release** (`.github/workflows/release.yml`): на tag `v*` — push Docker-образа в GHCR + бинарь в GitHub Release ✨
 - [x] Внешние сетевые тесты (HTTP checker) огорожены `testing.Short()` для стабильного CI
 
