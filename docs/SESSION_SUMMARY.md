@@ -1,160 +1,117 @@
-# Health Monitor - Session Summary
+# Health Monitor - Project Summary
 
-## Date: 2025-12-09
+## Date: 2026-06-27
 
-## What was implemented
+A snapshot of the project's current state. For the authoritative feature checklist
+see [`implementation-progress.md`](implementation-progress.md); for deferred work
+see [`backlog.md`](backlog.md).
 
-### 1. Infrastructure (Phase 0-1) ✅
-- Go module and project structure
-- Makefile with 20+ commands
-- Docker (multi-stage build) and docker-compose
-- .gitignore, .dockerignore, .golangci.yml
-- Comprehensive README.md
+---
 
-### 2. Domain Layer ✅
-- Models: Target, CheckResult, Incident, Alert
-- Configurations for all checker types (HTTP, TCP, DNS, ICMP)
-- Full set of interfaces:
-  - Checker, TargetRepository, CheckResultRepository, IncidentRepository
-  - Notifier, Scheduler, AlertManager, CheckerRegistry
+## What's implemented
 
-### 3. Configuration System ✅
-- Viper for loading YAML configuration
-- Support for environment variables
-- Configuration validation
-- Detailed example in `configs/example.yaml`
+### Infrastructure & core (Phase 0-1) ✅
+- Go module, project structure, Makefile (20+ commands)
+- Docker (multi-stage, CGO for SQLite) + docker-compose (dev & prod)
+- Domain layer: Target, CheckResult, Alert, Incident, NotifierConfig + interfaces
+- Config (Viper, YAML, env override), logging (zerolog), graceful shutdown
 
-### 4. Logging System ✅
-- Zerolog integration
-- Support for levels (debug, info, warn, error)
-- Formats: JSON and console
-- Output: stdout, stderr, file
+### Storage (Phase 2) ✅
+- GORM + SQLite, AutoMigrate, connection pooling
+- Repositories: Target, CheckResult (history/stats/retention), Incident, NotifierConfig
+- Targets and notifiers are managed via the API/UI (DB-backed), not from YAML
 
-### 5. Storage Layer (Phase 2) ✅
-- GORM + SQLite
-- Auto-migration
-- 3 repositories:
-  - **TargetRepository**: CRUD operations
-  - **CheckResultRepository**: saving results, history, statistics
-  - **IncidentRepository**: incident management
-- 4 tables with 14 indexes
-- Connection pooling
-- Graceful shutdown
+### Checkers (Phase 3-5) ✅
+- **HTTP/HTTPS** — status code, response time, SSL validation + expiry warning,
+  custom headers/methods, redirects, skip-verify
+- **TCP** — port availability + connection time
+- **DNS** — A/AAAA/CNAME/MX/TXT/NS, custom DNS server, expected-value validation
+- Thread-safe checker registry; type-aware target form in the UI
+- (ICMP/Ping is deferred — needs CAP_NET_RAW; see backlog)
 
-### 6. HTTP Checker (Phase 3) ✅
-- Full implementation of HTTP/HTTPS checks
-- Features:
-  - Status code validation
-  - Response time measurement
-  - SSL certificate validation
-  - SSL expiry check (with warnings N days in advance)
-  - Custom headers and HTTP methods
-  - Configurable redirects
-  - Configurable SSL verification (for self-signed)
-  - Max response time warnings
-- **Checker Registry**: thread-safe registration and management
-- **Comprehensive tests**: 4 tests, all passing
-  - Verified against a real endpoint (alfabank.far-harbor.ru)
-  - Response time: ~300ms
-  - SSL expires: 48 days
+### Scheduler (Phase 4) ✅
+- Ticker-based, independent per-target intervals, concurrent execution
+- AddTarget/RemoveTarget/UpdateTarget, graceful shutdown
+- (Worker pool / jitter / backoff deferred — see backlog)
 
-### 7. Git ✅
-- Repository initialized
-- 2 commits:
-  1. Initial implementation (infrastructure + storage)
-  2. HTTP checker implementation
+### Alerting (Phase 5-6) ✅
+- AlertManager: per-target state, consecutive fail/success, rule engine
+- Rules: consecutive failures, response-time threshold, SSL expiry, DOWN/UP
+- Incident creation/resolution, notifier broadcast, hot-reload
 
-## Current state
+### Notifiers (Phase 7) ✅
+- **Telegram** (Bot API, multiple chats, Markdown, **http/https/socks5 proxy**)
+- **Email/SMTP** (auth, TLS incl. implicit 465, HTML+plaintext)
+- **Gmail** Service Account (domain delegation) and **Gmail OAuth2**
+- **Webhook** (generic: url/method/headers/templated payload, retry+backoff)
+- CRUD via REST API + hot-reload + secret masking
 
-### Working
-- ✅ Application builds and runs
-- ✅ Database is created automatically
-- ✅ Migrations run
-- ✅ HTTP Checker is fully functional
-- ✅ All tests pass
-- ✅ Graceful shutdown works
+### HTTP API (Phase 8) ✅
+- Chi router, middleware (Request ID, Real IP, logging, recovery, timeout, CORS,
+  **Basic Auth**)
+- Targets CRUD + results + stats; Incidents (list/get/ongoing + per-target);
+  Notifiers CRUD
+- **`GET /health`** with real probes (DB + scheduler → healthy/degraded/unhealthy)
+- OpenAPI/Swagger via `oapi-codegen`
 
-### Fixed in this session
-- ✅ Docker: enabled CGO for SQLite (CGO_ENABLED=1)
-- ✅ Added gcc and musl-dev to Dockerfile for the build
+### Web Dashboard (Phase 9) ✅
+- Vanilla-JS SPA, full CRUD of targets and notifiers
+- **Real-time via SSE** (`/api/v1/events`) with incremental in-place updates;
+  polling only as a fallback
+- **Target detail modal**: response-time chart (self-hosted Chart.js),
+  period-switchable stats (24h/7d/30d), recent checks, incidents, config
 
-## File structure
+### Data Retention ✅
+- Background cleanup of old check results and resolved incidents per `RetentionConfig`
+
+### Deployment & CI ✅
+- Production docker-compose + Traefik labels, `.env`
+- **CI** (`test.yml`): vet + build + `go test -short -race` (blocking) +
+  golangci-lint (advisory)
+- **Release** (`release.yml`): on tag `v*` — push Docker image to GHCR + binary
+  to the GitHub Release
+
+---
+
+## Project structure
 
 ```
 health-monitor-backend/
-├── cmd/server/main.go              # Entry point
+├── cmd/server/main.go              # Entry point, lifecycle wiring
 ├── internal/
 │   ├── domain/                     # Models & interfaces
-│   │   ├── target.go
-│   │   ├── check_result.go
-│   │   ├── incident.go
-│   │   ├── alert.go
-│   │   └── interfaces.go
-│   ├── storage/                    # Database layer
-│   │   ├── database.go
-│   │   ├── target_repository.go
-│   │   ├── check_result_repository.go
-│   │   ├── incident_repository.go
-│   │   └── models/
-│   └── checker/                    # Health checkers
-│       ├── http.go
-│       ├── http_test.go
-│       └── registry.go
-├── pkg/
-│   ├── config/                     # Configuration
-│   └── logger/                     # Logging
-├── configs/example.yaml            # Config example
-├── migrations/001_initial_schema.sql
-└── docs/
-    ├── health-monitor-development-plan.md
-    ├── implementation-progress.md
-    └── SESSION_SUMMARY.md
-
-29 files, 4567+ lines of code
+│   ├── storage/                    # GORM + SQLite repositories + models/
+│   ├── checker/                    # http.go, tcp.go, dns.go, registry.go
+│   ├── scheduler/                  # Ticker-based scheduler
+│   ├── alerting/                   # AlertManager (rules, incidents)
+│   ├── notifier/                   # telegram, email, gmail, gmail_oauth, webhook
+│   ├── events/                     # In-process pub/sub broker (SSE)
+│   ├── retention/                  # Background cleanup job
+│   ├── api/                        # Chi server, handlers, SSE, health
+│   └── generated/                  # oapi-codegen output
+├── pkg/config, pkg/logger
+├── web/static/                     # SPA + vendored chart.umd.min.js
+├── migrations/
+├── configs/example.yaml
+├── .github/workflows/              # test.yml, release.yml
+├── docker-compose.yml, docker-compose.prod.yml, Dockerfile
+└── docs/                           # plan, progress, checkers, backlog, this file
 ```
 
-## Progress: 45%
+~50 Go source files, 10 test files across alerting/checker/events/notifier/retention/api.
 
-- ✅ Infrastructure: 100%
-- ✅ Domain Models: 100%
-- ✅ Configuration: 100%
-- ✅ Logging: 100%
-- ✅ Storage: 100%
-- ✅ HTTP Checker: 100%
-- ⏳ Additional Checkers: 0%
-- ⏳ Scheduler: 0%
-- ⏳ Alerts: 0%
-- ⏳ Notifiers: 0%
-- ⏳ HTTP API: 0%
+---
 
-## Next steps
+## Current status
 
-### Priority 1: Scheduler
-- Worker pool for concurrent execution
-- Ticker-based scheduling
-- Load targets from config/database
-- Graceful start/stop
+Functionally complete for self-hosted monitoring:
+- 3 checkers (HTTP/TCP/DNS), 5 notifiers, smart alerting with incidents
+- Real-time dashboard with charts, retention, health check, CI/CD
 
-### Priority 2: Alert Manager
-- Process check results
-- Detect consecutive failures
-- Create/resolve incidents
-- Trigger notifications
+Remaining (see [`backlog.md`](backlog.md)): ICMP checker, worker pool, Prometheus
+`/metrics`, `validate`/`backup` CLI, lint cleanup, multi-arch images.
 
-### Priority 3: Webhook Notifier
-- Template-based notifications
-- Slack/Discord integration
-- Retry logic
-
-### Priority 4: HTTP API
-- REST endpoints for management
-- Basic Auth
-- Real-time events (SSE)
-
-### Priority 5: Additional Checkers
-- TCP port checker
-- DNS resolver checker
-- ICMP ping checker
+---
 
 ## Commands to run
 
@@ -163,44 +120,51 @@ health-monitor-backend/
 make build          # Build the project
 make test           # Run tests
 make run            # Run the application
-make dev            # Run without building
 
-# Docker
-docker-compose up -d          # Run in Docker
-docker-compose logs -f        # View logs
-docker-compose down           # Stop
+# Docker (dev)
+docker compose up -d --build   # Build & run (rebuild needed after web/ changes)
+docker compose logs -f
+docker compose down
 
 # Tests
-go test -v ./internal/checker/...   # HTTP checker tests
-make test-coverage                   # Coverage report
+go test ./...                  # All tests
+go test -short -race ./...     # What CI runs (skips external-network tests)
 ```
-
-## Important notes
-
-1. **SQLite + CGO**: Dockerfile is configured with CGO_ENABLED=1 for SQLite
-2. **Database path**: `./data/health-monitor.db` (created automatically)
-3. **Configuration**: via YAML or environment variables (prefix `HEALTH_MONITOR_`)
-4. **Tests**: A real endpoint is used to verify the HTTP checker
-5. **Architecture**: Clean Architecture with full DI
-
-## Git History
-
-```bash
-git log --oneline
-```
-
-```
-2bfd03a feat: implement HTTP checker with SSL validation
-e0d622c feat: initial implementation - infrastructure and storage layer
-```
-
-## Contacts for continuing work
-
-When returning to the project:
-1. Check `docs/implementation-progress.md` for the current status
-2. Next step: **Scheduler implementation**
-3. All TODOs are marked in the code with comments
 
 ---
 
-**The project is ready for continued development!** 🚀
+## Important notes
+
+1. **SQLite + CGO**: builds require `CGO_ENABLED=1` (gcc); handled in Dockerfile and CI.
+2. **Database path**: `./data/health-monitor.db` (created automatically).
+3. **Config**: via YAML or env vars (prefix `HEALTH_MONITOR_`). Targets/notifiers
+   live in the DB, managed via the API/UI.
+4. **Static assets are baked into the Docker image** — after changing `web/`,
+   rebuild with `docker compose up -d --build` and hard-refresh the browser.
+5. **Architecture**: Clean Architecture, interface-based DI, graceful shutdown,
+   nil-safe optional dependencies (event publisher, DB pinger) wired via setters.
+
+---
+
+## Recent git history
+
+```bash
+git log --oneline -10
+```
+
+```
+docs: translate all docs to English and add GHCR deploy to backlog
+ci: add test and release GitHub Actions workflows
+feat(api): add real health check for database and scheduler
+feat(ui): add target detail view with response-time chart
+feat(api): add per-target incidents endpoint and harden stats period
+perf(ui): apply SSE events incrementally without full refetch
+feat(events): add SSE real-time stream for checks and alerts
+feat(retention): add background cleanup job for old results and incidents
+feat(checker): add DNS checker with record validation and UI
+feat(checker): add TCP checker with type-aware target UI
+```
+
+---
+
+**The project is production-ready; continue from the backlog.** 🚀
