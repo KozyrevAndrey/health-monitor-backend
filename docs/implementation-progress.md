@@ -68,7 +68,8 @@
 - [x] In-process event broker (`internal/events/broker.go`): pub/sub, non-blocking, drop-on-full ✨
 - [x] Публикация `check`/`alert` событий из scheduler и alert manager (nil-safe `SetEventPublisher`)
 - [x] SSE endpoint вне logging/Timeout-группы; снятие write-deadline через `ResponseController`, heartbeat 25с
-- [x] UI на `EventSource` с debounced refresh; проверено: стрим жив >90с (прошёл WriteTimeout 15с и chi Timeout 60с)
+- [x] UI на `EventSource` с **инкрементальными апдейтами** из payload'а: `check` обновляет карточку/счётчики без запросов к бэкенду, `alert` — только панель инцидентов; full-refresh лишь как fallback
+- [x] Проверено: стрим жив >90с (прошёл WriteTimeout 15с и chi Timeout 60с)
 
 ### Data Retention
 - [x] Фоновая очистка (`internal/retention/cleaner.go`): удаление старых check_results и resolved-инцидентов по `RetentionConfig` (`cleanup_interval`), initial sweep при старте, graceful stop по ctx ✨

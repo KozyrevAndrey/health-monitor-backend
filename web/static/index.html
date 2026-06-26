@@ -832,6 +832,8 @@
         let autoRefreshInterval;
         let eventStream = null;
         let refreshDebounce = null;
+        let incidentsDebounce = null;
+        let targetStatusCache = {}; // target_id -> last status, for incremental stat counters
         let editingTargetId = null;
 
         async function fetchAPI(endpoint, options = {}) {
@@ -1020,6 +1022,7 @@
 
                 let healthy = 0;
                 let failing = 0;
+                targetStatusCache = {}; // rebuilt fully on each load (covers added/removed targets)
 
                 const targetResults = await Promise.all(
                     targets.map(async (target) => {
@@ -1039,6 +1042,7 @@
 
                     if (status === 'success') healthy++;
                     if (status === 'failure') failing++;
+                    targetStatusCache[target.id] = status;
 
                     const responseTime = lastResult?.response_time_ms || '-';
                     const lastCheck = lastResult ? new Date(lastResult.checked_at).toLocaleString() : 'Never';
@@ -1049,11 +1053,11 @@
                                    : (tc.url || '—');
 
                     return `
-                        <div class="target-card">
+                        <div class="target-card" data-target-id="${target.id}">
                             <div class="target-header">
                                 <div class="target-name">${target.name}</div>
                                 <div class="target-actions">
-                                    <span class="status-badge ${statusClass}">${status}</span>
+                                    <span class="status-badge ${statusClass}" data-field="status">${status}</span>
                                     <button class="btn btn-small" onclick='showEditModal(${JSON.stringify(target).replace(/'/g, "&#39;")})'>✏️ Edit</button>
                                     <button class="btn btn-small btn-danger" onclick="deleteTarget('${target.id}', '${target.name}')">🗑️ Delete</button>
                                 </div>
@@ -1069,10 +1073,10 @@
                                     <strong>Status:</strong> ${enabled} ${target.enabled ? 'Enabled' : 'Disabled'}
                                 </div>
                                 <div class="info-item">
-                                    <strong>Response:</strong> ${responseTime}ms
+                                    <strong>Response:</strong> <span data-field="response">${responseTime}ms</span>
                                 </div>
                                 <div class="info-item">
-                                    <strong>Last Check:</strong> ${lastCheck}
+                                    <strong>Last Check:</strong> <span data-field="lastcheck">${lastCheck}</span>
                                 </div>
                             </div>
                         </div>
@@ -1444,10 +1448,53 @@
             document.getElementById('last-updated').textContent = new Date().toLocaleTimeString();
         }
 
-        // Coalesce bursts of events (many targets checked at once) into one refresh.
+        // Coalesce bursts of events into one full refresh (fallback path).
         function scheduleRefresh() {
             if (refreshDebounce) return;
             refreshDebounce = setTimeout(() => { refreshDebounce = null; refreshData(); }, 800);
+        }
+
+        // Recompute the stat cards from the cached per-target statuses (no fetch).
+        function recomputeTargetStats() {
+            const statuses = Object.values(targetStatusCache);
+            document.getElementById('stat-total').textContent = statuses.length;
+            document.getElementById('stat-healthy').textContent = statuses.filter(s => s === 'success').length;
+            document.getElementById('stat-failing').textContent = statuses.filter(s => s === 'failure').length;
+        }
+
+        // Apply a 'check' event in place — update the one card and the counters,
+        // without hitting the backend. Falls back to a full refresh only if the
+        // target card isn't rendered yet (e.g. just created elsewhere).
+        function applyCheckEvent(d) {
+            const known = Object.prototype.hasOwnProperty.call(targetStatusCache, d.target_id);
+            targetStatusCache[d.target_id] = d.status;
+
+            const card = document.querySelector(`.target-card[data-target-id="${d.target_id}"]`);
+            if (!card || !known) { scheduleRefresh(); return; }
+
+            const badge = card.querySelector('[data-field="status"]');
+            if (badge) {
+                badge.textContent = d.status;
+                badge.className = 'status-badge ' + (d.status === 'success' ? 'status-success'
+                                 : d.status === 'failure' ? 'status-failure' : 'status-unknown');
+            }
+            const resp = card.querySelector('[data-field="response"]');
+            if (resp) resp.textContent = `${d.response_time_ms ?? '-'}ms`;
+            const last = card.querySelector('[data-field="lastcheck"]');
+            if (last && d.checked_at) last.textContent = new Date(d.checked_at).toLocaleString();
+
+            recomputeTargetStats();
+            document.getElementById('last-updated').textContent = new Date().toLocaleTimeString();
+        }
+
+        // 'alert' events refresh only the incidents panel + counter (debounced).
+        function scheduleIncidentsRefresh() {
+            if (incidentsDebounce) return;
+            incidentsDebounce = setTimeout(async () => {
+                incidentsDebounce = null;
+                const activeIncidents = await loadIncidents();
+                document.getElementById('stat-incidents').textContent = activeIncidents;
+            }, 800);
         }
 
         // Live updates via Server-Sent Events. EventSource auto-reconnects on
@@ -1455,8 +1502,10 @@
         function connectEventStream() {
             try {
                 eventStream = new EventSource('/api/v1/events');
-                eventStream.addEventListener('check', scheduleRefresh);
-                eventStream.addEventListener('alert', scheduleRefresh);
+                eventStream.addEventListener('check', (e) => {
+                    try { applyCheckEvent(JSON.parse(e.data)); } catch (_) { scheduleRefresh(); }
+                });
+                eventStream.addEventListener('alert', scheduleIncidentsRefresh);
             } catch (e) {
                 console.warn('SSE unavailable, relying on polling', e);
             }
