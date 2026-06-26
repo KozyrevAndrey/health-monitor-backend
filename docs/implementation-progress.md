@@ -77,9 +77,12 @@
 - [x] Фоновая очистка (`internal/retention/cleaner.go`): удаление старых check_results и resolved-инцидентов по `RetentionConfig` (`cleanup_interval`), initial sweep при старте, graceful stop по ctx ✨
 - [x] `DeleteResolvedOlderThan` в IncidentRepository, тесты cleaner'а
 
-### Deployment
+### Deployment & CI
 - [x] **Production docker-compose** (`docker-compose.prod.yml`) + Traefik labels + `DOMAIN`/basic-auth env (`a3a9f9f`, `5d4d98a`, `578b240`)
 - [x] `.env` / `.env.example`, mount secrets volume (`4bd3014`)
+- [x] **CI** (`.github/workflows/test.yml`): go vet + build + `go test -short -race` + golangci-lint на push/PR ✨
+- [x] **Release** (`.github/workflows/release.yml`): на tag `v*` — push Docker-образа в GHCR + бинарь в GitHub Release ✨
+- [x] Внешние сетевые тесты (HTTP checker) огорожены `testing.Short()` для стабильного CI
 
 ---
 
@@ -89,7 +92,7 @@
 - [ ] **Worker pool** в scheduler (сейчас goroutine-per-target без bounded pool/очереди)
 - [ ] **Prometheus `/metrics`**
 - [ ] **CLI**: `validate`, `backup`/`restore`
-- [ ] **CI/CD** (GitHub Actions), load/security тесты
+- [ ] CLI `validate`/`backup`, load/security тесты (CI/CD — готово)
 - [ ] PostgreSQL adapter, RBAC/multi-user, maintenance windows, status page, alert routing/escalation, quiet hours
 
 ---
@@ -122,7 +125,7 @@
 1. **Worker pool** в scheduler
 2. **Prometheus `/metrics`**
 3. **ICMP/Ping checker** ([backlog](backlog.md) — требует привилегий CAP_NET_RAW)
-4. CLI `validate`/`backup`, CI/CD
+4. CLI `validate`/`backup`
 
 ---
 

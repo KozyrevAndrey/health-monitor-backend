@@ -9,6 +9,9 @@ import (
 )
 
 func TestHTTPChecker_Check_Success(t *testing.T) {
+	if testing.Short() {
+		t.Skip("requires external network (alfabank.far-harbor.ru)")
+	}
 	checker := NewHTTPChecker()
 
 	target := &domain.Target{
@@ -89,6 +92,9 @@ func TestHTTPChecker_Check_InvalidURL(t *testing.T) {
 }
 
 func TestHTTPChecker_Check_WrongStatusCode(t *testing.T) {
+	if testing.Short() {
+		t.Skip("requires external network (alfabank.far-harbor.ru)")
+	}
 	checker := NewHTTPChecker()
 
 	target := &domain.Target{
