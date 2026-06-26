@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"gorm.io/gorm"
 
@@ -157,4 +158,17 @@ func (r *IncidentRepository) Resolve(ctx context.Context, id int64) error {
 	}
 
 	return nil
+}
+
+// DeleteResolvedOlderThan deletes resolved incidents that were resolved before the given time
+func (r *IncidentRepository) DeleteResolvedOlderThan(ctx context.Context, before time.Time) (int64, error) {
+	result := r.db.WithContext(ctx).
+		Where("status = ? AND resolved_at IS NOT NULL AND resolved_at < ?", domain.IncidentStatusResolved, before).
+		Delete(&models.Incident{})
+
+	if result.Error != nil {
+		return 0, fmt.Errorf("failed to delete old incidents: %w", result.Error)
+	}
+
+	return result.RowsAffected, nil
 }

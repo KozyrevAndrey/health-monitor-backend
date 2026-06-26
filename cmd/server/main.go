@@ -14,6 +14,7 @@ import (
 	"health-monitor/internal/checker"
 	"health-monitor/internal/domain"
 	"health-monitor/internal/notifier"
+	"health-monitor/internal/retention"
 	"health-monitor/internal/scheduler"
 	"health-monitor/internal/storage"
 	"health-monitor/pkg/config"
@@ -152,6 +153,8 @@ func run(ctx context.Context, cfg *config.Config, log zerolog.Logger) error {
 		}
 		log.Info().Int("targets", len(targets)).Msg("Loaded targets from database")
 	}
+
+	retention.New(checkResultRepo, incidentRepo, cfg.Retention, log).Start(ctx)
 
 	apiServer := api.NewServer(cfg.Server, targetRepo, checkResultRepo, incidentRepo, notifierRepo, alertManager, sched, log)
 

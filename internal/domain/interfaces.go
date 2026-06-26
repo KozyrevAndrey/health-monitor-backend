@@ -81,6 +81,9 @@ type IncidentRepository interface {
 
 	// Resolve marks an incident as resolved
 	Resolve(ctx context.Context, id int64) error
+
+	// DeleteResolvedOlderThan deletes resolved incidents resolved before the given time
+	DeleteResolvedOlderThan(ctx context.Context, before time.Time) (int64, error)
 }
 
 // Notifier defines the interface for sending notifications
