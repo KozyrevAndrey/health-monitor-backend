@@ -53,5 +53,6 @@ func NewDefaultRegistry() *Registry {
 	registry := NewRegistry()
 	registry.Register(NewHTTPChecker())
 	registry.Register(NewTCPChecker())
+	registry.Register(NewDNSChecker())
 	return registry
 }

@@ -540,6 +540,7 @@
                     <select id="formType" class="form-select" required onchange="onTargetTypeChange()">
                         <option value="http">HTTP/HTTPS</option>
                         <option value="tcp">TCP Port</option>
+                        <option value="dns">DNS</option>
                     </select>
                 </div>
 
@@ -564,6 +565,34 @@
                     <div class="form-group">
                         <label class="form-label">Port *</label>
                         <input type="number" id="formTcpPort" class="form-input" placeholder="5432" min="1" max="65535">
+                    </div>
+                </div>
+
+                <!-- DNS fields -->
+                <div id="target-fields-dns" class="dynamic-fields">
+                    <div class="form-group">
+                        <label class="form-label">Domain *</label>
+                        <input type="text" id="formDnsDomain" class="form-input" placeholder="example.com">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Record Type</label>
+                        <select id="formDnsRecord" class="form-select">
+                            <option value="A">A</option>
+                            <option value="AAAA">AAAA</option>
+                            <option value="CNAME">CNAME</option>
+                            <option value="MX">MX</option>
+                            <option value="TXT">TXT</option>
+                            <option value="NS">NS</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">DNS Server (optional)</label>
+                        <input type="text" id="formDnsServer" class="form-input" placeholder="8.8.8.8 (default: system resolver)">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Expected records (optional, comma-separated)</label>
+                        <input type="text" id="formDnsExpected" class="form-input" placeholder="1.2.3.4, 5.6.7.8">
+                        <small style="color:#888">Проверка, что резолв содержит эти значения (IP/хост)</small>
                     </div>
                 </div>
 
@@ -826,7 +855,7 @@
 
         function onTargetTypeChange() {
             const type = document.getElementById('formType').value;
-            ['http','tcp'].forEach(t => {
+            ['http','tcp','dns'].forEach(t => {
                 document.getElementById(`target-fields-${t}`).classList.toggle('active', t === type);
             });
         }
@@ -854,6 +883,11 @@
             if (target.type === 'tcp') {
                 document.getElementById('formTcpHost').value = c.host || '';
                 document.getElementById('formTcpPort').value = c.port || '';
+            } else if (target.type === 'dns') {
+                document.getElementById('formDnsDomain').value = c.domain || '';
+                document.getElementById('formDnsRecord').value = (c.record_type || 'A').toUpperCase();
+                document.getElementById('formDnsServer').value = c.dns_server || '';
+                document.getElementById('formDnsExpected').value = [...(c.expected_ips || []), ...(c.expect_values || [])].join(', ');
             } else {
                 document.getElementById('formUrl').value = c.url || '';
                 document.getElementById('formStatusCode').value = c.expected_status_code || 200;
@@ -895,6 +929,18 @@
                 if (!host) { alert('Host is required for TCP'); return; }
                 if (!port || port < 1 || port > 65535) { alert('Port must be 1–65535'); return; }
                 config = { host, port };
+            } else if (type === 'dns') {
+                const domain = document.getElementById('formDnsDomain').value.trim();
+                if (!domain) { alert('Domain is required for DNS'); return; }
+                const expected = document.getElementById('formDnsExpected').value
+                    .split(',').map(s => s.trim()).filter(Boolean);
+                config = {
+                    domain,
+                    record_type: document.getElementById('formDnsRecord').value,
+                };
+                const server = document.getElementById('formDnsServer').value.trim();
+                if (server) config.dns_server = server;
+                if (expected.length) config.expect_values = expected;
             } else {
                 const url = document.getElementById('formUrl').value.trim();
                 if (!url) { alert('URL is required for HTTP'); return; }
@@ -996,7 +1042,9 @@
                     const lastCheck = lastResult ? new Date(lastResult.checked_at).toLocaleString() : 'Never';
                     const enabled = target.enabled ? '✅' : '❌';
                     const tc = target.config || {};
-                    const endpoint = target.type === 'tcp' ? `${tc.host || ''}:${tc.port || ''}` : (tc.url || '—');
+                    const endpoint = target.type === 'tcp' ? `${tc.host || ''}:${tc.port || ''}`
+                                   : target.type === 'dns' ? `${tc.record_type || 'A'} ${tc.domain || ''}`
+                                   : (tc.url || '—');
 
                     return `
                         <div class="target-card">

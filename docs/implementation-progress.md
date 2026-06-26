@@ -25,8 +25,9 @@
 - [x] Checker registry (thread-safe), резолв checker'а по `target.Type`
 - [x] **HTTP/HTTPS** checker: status code, response time, SSL validation + expiry warning, custom headers/methods, redirects, skip-verify
 - [x] **TCP** checker (`tcp.go`): проверка доступности порта + connection time, метадата host/port/address ✨
-- [x] Тесты (`http_test.go`, `tcp_test.go`)
-- [x] UI: форма таргета **type-aware** (HTTP url/status vs TCP host/port), endpoint в карточке
+- [x] **DNS** checker (`dns.go`): резолвинг A/AAAA/CNAME/MX/TXT/NS, resolution time, кастомный DNS-сервер, валидация против expected values, дедуп записей ✨
+- [x] Тесты (`http_test.go`, `tcp_test.go`, `dns_test.go`)
+- [x] UI: форма таргета **type-aware** (HTTP url/status · TCP host/port · DNS domain/record/server/expected), endpoint в карточке
 
 ### Фаза 4: Scheduler
 - [x] Ticker-based, независимые интервалы на target, concurrent execution (goroutine на target)
@@ -71,7 +72,7 @@
 
 ## ⏳ Not Done (по плану)
 
-- [ ] **Дополнительные чекеры**: DNS, ICMP (есть http.go + tcp.go)
+- [ ] **Дополнительные чекеры**: ICMP/Ping (есть http.go + tcp.go + dns.go)
 - [ ] **SSE / real-time** (`GET /api/v1/events`) — сейчас UI на polling'е
 - [ ] **Target detail page** с графиками (Chart.js): uptime 24h/7d/30d, история чекетов
 - [ ] **Worker pool** в scheduler (сейчас goroutine-per-target без bounded pool/очереди)
@@ -89,14 +90,14 @@
 |---|---|
 | Infrastructure / Domain / Config / Logging | 100% |
 | Storage (SQLite + repos + notifier configs) | 100% |
-| Checkers: HTTP + TCP | 100% |
+| Checkers: HTTP + TCP + DNS | 100% |
 | Scheduler (без worker pool) | 90% |
 | Alert Manager (+ hot-reload) | 100% |
 | Notifiers: Telegram(+proxy)/Email/Gmail SA/Gmail OAuth/Webhook | 100% |
 | HTTP API (+ OpenAPI/Swagger, Basic Auth) | 100% |
 | Web Dashboard (полный CRUD, polling) | 95% |
 | Prod deploy (Traefik) | 100% |
-| Доп. чекеры (DNS/ICMP) | 0% |
+| Доп. чекеры (ICMP) | 0% |
 | SSE / графики / retention job / metrics | 0% |
 
 **Last Updated:** 2026-06-26
@@ -105,7 +106,7 @@
 
 ## 🚀 Next Steps (приоритет)
 
-1. **DNS / ICMP checkers** (тот же паттерн, что TCP)
+1. **ICMP/Ping checker** (требует привилегий — CAP_NET_RAW)
 2. **Retention cleanup job** — фоновая очистка по `cleanup_interval` (метод `DeleteOlderThan` готов)
 3. **SSE real-time** + замена polling'а в UI
 4. **Target detail page** с графиками (Chart.js)
