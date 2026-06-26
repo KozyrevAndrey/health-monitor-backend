@@ -16,18 +16,58 @@ type ErrorResponse struct {
 }
 
 type HealthResponse struct {
-	Status    string    `json:"status"`
-	Timestamp time.Time `json:"timestamp"`
-	Version   string    `json:"version"`
+	Status    string                 `json:"status"`
+	Timestamp time.Time              `json:"timestamp"`
+	Version   string                 `json:"version"`
+	Checks    map[string]HealthCheck `json:"checks,omitempty"`
 }
 
+// HealthCheck is the result of a single dependency probe.
+type HealthCheck struct {
+	Status string `json:"status"` // "ok" | "error"
+	Error  string `json:"error,omitempty"`
+}
+
+// handleHealth reports the monitor's own health. It probes the database and the
+// scheduler and rolls them up into an overall status:
+//   - healthy:   everything OK
+//   - degraded:  a non-critical dependency is down (scheduler not running)
+//   - unhealthy: a critical dependency is down (database unreachable) -> HTTP 503
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
-	response := HealthResponse{
-		Status:    "ok",
+	checks := make(map[string]HealthCheck)
+	status := "healthy"
+
+	if s.dbPinger != nil {
+		if err := s.dbPinger.Ping(); err != nil {
+			checks["database"] = HealthCheck{Status: "error", Error: err.Error()}
+			status = "unhealthy"
+		} else {
+			checks["database"] = HealthCheck{Status: "ok"}
+		}
+	}
+
+	if s.scheduler != nil {
+		if s.scheduler.IsRunning() {
+			checks["scheduler"] = HealthCheck{Status: "ok"}
+		} else {
+			checks["scheduler"] = HealthCheck{Status: "error", Error: "not running"}
+			if status == "healthy" {
+				status = "degraded"
+			}
+		}
+	}
+
+	code := http.StatusOK
+	if status == "unhealthy" {
+		code = http.StatusServiceUnavailable
+	}
+
+	s.respondJSON(w, code, HealthResponse{
+		Status:    status,
 		Timestamp: time.Now(),
 		Version:   "dev",
-	}
-	s.respondJSON(w, http.StatusOK, response)
+		Checks:    checks,
+	})
 }
 
 func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {

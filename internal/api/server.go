@@ -26,15 +26,26 @@ type Server struct {
 	alertManager    domain.AlertManager
 	scheduler       domain.Scheduler
 	eventBroker     *events.Broker
+	dbPinger        pinger
 	log             zerolog.Logger
 	enableAuth      bool
 	basicAuthUser   string
 	basicAuthPass   string
 }
 
+// pinger is the minimal dependency the health check needs from the database.
+type pinger interface {
+	Ping() error
+}
+
 // SetEventBroker attaches the broker used by the SSE /api/v1/events endpoint.
 func (s *Server) SetEventBroker(b *events.Broker) {
 	s.eventBroker = b
+}
+
+// SetDBPinger attaches a database health checker used by the /health endpoint.
+func (s *Server) SetDBPinger(p pinger) {
+	s.dbPinger = p
 }
 
 func NewServer(

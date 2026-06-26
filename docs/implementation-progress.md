@@ -54,7 +54,8 @@
 ### Фаза 8: HTTP API
 - [x] Chi router v5, конфигурируемые таймауты, graceful shutdown
 - [x] Middleware: Request ID, Real IP, logging, recovery, timeout, CORS, **Basic Auth** (`fbdbe5a`)
-- [x] Targets CRUD + results + stats; Incidents (list/get/ongoing); Notifiers CRUD; `GET /health`
+- [x] Targets CRUD + results + stats; Incidents (list/get/ongoing + per-target); Notifiers CRUD
+- [x] **`GET /health`** с реальными пробами: пинг БД + scheduler, статусы healthy/degraded/unhealthy (503 при unhealthy) ✨
 - [x] **OpenAPI/Swagger**: `oapi-codegen` (`internal/generated/api.gen.go`), swagger handlers (`swagger_handlers.go`, `openapi_adapter.go`)
 
 ### Фаза 9: Web Dashboard

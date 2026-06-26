@@ -163,6 +163,7 @@ func run(ctx context.Context, cfg *config.Config, log zerolog.Logger) error {
 
 	apiServer := api.NewServer(cfg.Server, targetRepo, checkResultRepo, incidentRepo, notifierRepo, alertManager, sched, log)
 	apiServer.SetEventBroker(eventBroker)
+	apiServer.SetDBPinger(db)
 
 	go func() {
 		if err := apiServer.Start(); err != nil {
