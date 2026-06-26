@@ -212,6 +212,8 @@ func loadNotifiersFromDB(ctx context.Context, repo domain.NotifierRepository, al
 			n, err = notifier.NewGmailNotifier(cfg.Config, log)
 		case "gmail_oauth":
 			n, err = notifier.NewGmailOAuthNotifier(cfg.Config, log)
+		case "webhook":
+			n, err = notifier.NewWebhookNotifier(cfg.Config, log)
 		default:
 			log.Warn().Str("id", cfg.ID).Str("type", cfg.Type).Msg("Unknown notifier type, skipping")
 			continue

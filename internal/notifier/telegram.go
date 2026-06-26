@@ -27,6 +27,7 @@ type TelegramNotifier struct {
 type telegramConfig struct {
 	BotToken string   `json:"bot_token"`
 	ChatIDs  []string `json:"chat_ids"`
+	ProxyURL string   `json:"proxy_url"`
 }
 
 type telegramMessage struct {
@@ -46,13 +47,16 @@ func NewTelegramNotifier(config map[string]interface{}, log zerolog.Logger) (*Te
 		return nil, err
 	}
 
+	client, err := buildHTTPClient(cfg.ProxyURL, 10*time.Second)
+	if err != nil {
+		return nil, err
+	}
+
 	return &TelegramNotifier{
 		botToken: cfg.BotToken,
 		chatIDs:  cfg.ChatIDs,
-		client: &http.Client{
-			Timeout: 10 * time.Second,
-		},
-		log: log,
+		client:   client,
+		log:      log,
 	}, nil
 }
 
@@ -85,9 +89,22 @@ func parseTelegramConfig(config map[string]interface{}) (*telegramConfig, error)
 		return nil, fmt.Errorf("at least one chat_id is required")
 	}
 
+	var proxyURL string
+	if raw, ok := config["proxy_url"]; ok {
+		if proxyURL, ok = raw.(string); !ok {
+			return nil, fmt.Errorf("proxy_url must be a string")
+		}
+		if proxyURL != "" {
+			if _, err := parseProxyURL(proxyURL); err != nil {
+				return nil, err
+			}
+		}
+	}
+
 	return &telegramConfig{
 		BotToken: botToken,
 		ChatIDs:  chatIDs,
+		ProxyURL: proxyURL,
 	}, nil
 }
 

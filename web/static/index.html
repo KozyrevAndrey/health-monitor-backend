@@ -609,6 +609,7 @@
                         <option value="telegram">Telegram Bot</option>
                         <option value="email">Email (SMTP)</option>
                         <option value="gmail">Gmail (Service Account + Domain Delegation)</option>
+                        <option value="webhook">Webhook (generic)</option>
                     </select>
                 </div>
 
@@ -687,6 +688,55 @@
                                    onkeydown="addTag(event,'tgChatWrapper','tgChatInput','tgChatTags')">
                         </div>
                         <input type="hidden" id="tgChatTags" value="[]">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Proxy URL (optional)</label>
+                        <input type="text" id="formTgProxy" class="form-input"
+                               placeholder="socks5://user:pass@host:1080">
+                        <small style="color:#888">http://, https:// или socks5:// — для доступа к Telegram API через прокси</small>
+                    </div>
+                </div>
+
+                <!-- Webhook (generic) fields -->
+                <div id="fields-webhook" class="dynamic-fields">
+                    <div class="form-group">
+                        <label class="form-label">URL *</label>
+                        <input type="text" id="formWebhookUrl" class="form-input"
+                               placeholder="https://hooks.slack.com/services/...">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Method</label>
+                        <select id="formWebhookMethod" class="form-select">
+                            <option value="POST">POST</option>
+                            <option value="PUT">PUT</option>
+                            <option value="GET">GET</option>
+                            <option value="PATCH">PATCH</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Headers (JSON, optional)</label>
+                        <textarea id="formWebhookHeaders" class="form-input" rows="2"
+                                  placeholder='{"Authorization": "Bearer ..."}'></textarea>
+                        <small style="color:#888">Объект строка→строка. Content-Type по умолчанию application/json</small>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Payload template (optional)</label>
+                        <textarea id="formWebhookPayload" class="form-input" rows="3"
+                                  placeholder='{"text": "{{.Message}} ({{.TargetName}})"}'></textarea>
+                        <small style="color:#888">Go text/template по полям алерта (.Message, .TargetName, .Type, .Severity, .CreatedAt). Пусто = JSON алерта</small>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Timeout</label>
+                        <input type="text" id="formWebhookTimeout" class="form-input" placeholder="10s">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Max retries</label>
+                        <input type="number" id="formWebhookRetries" class="form-input" value="3" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Proxy URL (optional)</label>
+                        <input type="text" id="formWebhookProxy" class="form-input"
+                               placeholder="socks5://host:1080">
                     </div>
                 </div>
 
@@ -1058,8 +1108,9 @@
             const c = n.config || {};
             if (n.type === 'gmail_oauth') return `from: ${c.from || '—'} → ${(c.to || []).join(', ')}`;
             if (n.type === 'gmail')       return `from: ${c.from || '—'} → ${(c.to || []).join(', ')}`;
-            if (n.type === 'telegram')    return `chat ids: ${(c.chat_ids || []).join(', ')}`;
+            if (n.type === 'telegram')    return `chat ids: ${(c.chat_ids || []).join(', ')}${c.proxy_url ? ' (proxy)' : ''}`;
             if (n.type === 'email')       return `${c.smtp_host || ''}:${c.smtp_port || ''} from: ${c.from || '—'}`;
+            if (n.type === 'webhook')     return `${c.method || 'POST'} ${c.url || '—'}`;
             return '';
         }
 
@@ -1082,7 +1133,7 @@
 
         function onNotifierTypeChange() {
             const type = document.getElementById('formNotifierType').value;
-            ['gmail_oauth','gmail','telegram','email'].forEach(t => {
+            ['gmail_oauth','gmail','telegram','email','webhook'].forEach(t => {
                 document.getElementById(`fields-${t}`).classList.toggle('active', t === type);
             });
         }
@@ -1163,6 +1214,15 @@
             } else if (n.type === 'telegram') {
                 document.getElementById('formTgToken').value = c.bot_token || '';
                 setTags('tgChatWrapper','tgChatInput','tgChatTags', c.chat_ids || []);
+                document.getElementById('formTgProxy').value = c.proxy_url || '';
+            } else if (n.type === 'webhook') {
+                document.getElementById('formWebhookUrl').value = c.url || '';
+                document.getElementById('formWebhookMethod').value = c.method || 'POST';
+                document.getElementById('formWebhookHeaders').value = c.headers ? JSON.stringify(c.headers, null, 0) : '';
+                document.getElementById('formWebhookPayload').value = c.payload || '';
+                document.getElementById('formWebhookTimeout').value = c.timeout || '';
+                document.getElementById('formWebhookRetries').value = (c.max_retries != null) ? c.max_retries : 3;
+                document.getElementById('formWebhookProxy').value = c.proxy_url || '';
             } else if (n.type === 'email') {
                 document.getElementById('formSmtpHost').value = c.smtp_host || '';
                 document.getElementById('formSmtpPort').value = c.smtp_port || 587;
@@ -1219,10 +1279,30 @@
                 };
             } else if (type === 'telegram') {
                 const token = document.getElementById('formTgToken').value;
+                const proxy = document.getElementById('formTgProxy').value.trim();
                 config = {
                     chat_ids: JSON.parse(document.getElementById('tgChatTags').value),
                 };
                 if (token && token !== '***') config.bot_token = token;
+                if (proxy) config.proxy_url = proxy;
+            } else if (type === 'webhook') {
+                config = {
+                    url: document.getElementById('formWebhookUrl').value.trim(),
+                    method: document.getElementById('formWebhookMethod').value,
+                };
+                const headersRaw = document.getElementById('formWebhookHeaders').value.trim();
+                if (headersRaw) {
+                    try { config.headers = JSON.parse(headersRaw); }
+                    catch (e) { alert('Headers must be valid JSON'); return; }
+                }
+                const payload = document.getElementById('formWebhookPayload').value;
+                if (payload.trim()) config.payload = payload;
+                const timeout = document.getElementById('formWebhookTimeout').value.trim();
+                if (timeout) config.timeout = timeout;
+                const retries = document.getElementById('formWebhookRetries').value;
+                if (retries !== '') config.max_retries = parseInt(retries) || 0;
+                const proxy = document.getElementById('formWebhookProxy').value.trim();
+                if (proxy) config.proxy_url = proxy;
             } else if (type === 'email') {
                 const pass = document.getElementById('formSmtpPass').value;
                 config = {

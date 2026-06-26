@@ -56,6 +56,11 @@ func (s *Server) handleCreateNotifier(w http.ResponseWriter, r *http.Request) {
 	cfg.CreatedAt = time.Now()
 	cfg.UpdatedAt = time.Now()
 
+	if _, err := buildNotifier(&cfg, s); err != nil {
+		s.respondError(w, http.StatusBadRequest, "Invalid notifier config", err)
+		return
+	}
+
 	if err := s.notifierRepo.Create(ctx, &cfg); err != nil {
 		s.respondError(w, http.StatusInternalServerError, "Failed to create notifier", err)
 		return
@@ -97,6 +102,11 @@ func (s *Server) handleUpdateNotifier(w http.ResponseWriter, r *http.Request) {
 			}
 			existing.Config[k] = v
 		}
+	}
+
+	if _, err := buildNotifier(existing, s); err != nil {
+		s.respondError(w, http.StatusBadRequest, "Invalid notifier config", err)
+		return
 	}
 
 	if err := s.notifierRepo.Update(ctx, existing); err != nil {
@@ -207,6 +217,8 @@ func buildNotifier(cfg *domain.NotifierConfig, s *Server) (domain.Notifier, erro
 		return notifier.NewGmailNotifier(cfg.Config, s.log)
 	case "gmail_oauth":
 		return notifier.NewGmailOAuthNotifier(cfg.Config, s.log)
+	case "webhook":
+		return notifier.NewWebhookNotifier(cfg.Config, s.log)
 	default:
 		return nil, fmt.Errorf("unknown notifier type: %s", cfg.Type)
 	}

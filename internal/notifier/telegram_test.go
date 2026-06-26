@@ -85,6 +85,58 @@ func TestNewTelegramNotifier(t *testing.T) {
 	}
 }
 
+func TestNewTelegramNotifier_Proxy(t *testing.T) {
+	log := zerolog.Nop()
+	base := map[string]interface{}{
+		"bot_token": "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11",
+		"chat_ids":  []interface{}{"123456789"},
+	}
+
+	tests := []struct {
+		name      string
+		proxyURL  interface{}
+		shouldErr bool
+		wantProxy bool
+	}{
+		{name: "no proxy", proxyURL: nil, shouldErr: false, wantProxy: false},
+		{name: "http proxy", proxyURL: "http://proxy.local:8080", shouldErr: false, wantProxy: true},
+		{name: "socks5 proxy", proxyURL: "socks5://user:pass@host:1080", shouldErr: false, wantProxy: true},
+		{name: "empty proxy", proxyURL: "", shouldErr: false, wantProxy: false},
+		{name: "unsupported scheme", proxyURL: "ftp://host:21", shouldErr: true},
+		{name: "missing host", proxyURL: "socks5://", shouldErr: true},
+		{name: "wrong type", proxyURL: 123, shouldErr: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := map[string]interface{}{}
+			for k, v := range base {
+				cfg[k] = v
+			}
+			if tt.proxyURL != nil {
+				cfg["proxy_url"] = tt.proxyURL
+			}
+
+			n, err := NewTelegramNotifier(cfg, log)
+			if tt.shouldErr {
+				if err == nil {
+					t.Fatal("Expected error but got none")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("Unexpected error: %v", err)
+			}
+			if tt.wantProxy && n.client.Transport == nil {
+				t.Error("Expected client to have a proxy Transport")
+			}
+			if !tt.wantProxy && n.client.Transport != nil {
+				t.Error("Expected client without Transport")
+			}
+		})
+	}
+}
+
 func TestTelegramNotifier_Type(t *testing.T) {
 	log := zerolog.Nop()
 	config := map[string]interface{}{

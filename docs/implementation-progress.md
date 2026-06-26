@@ -1,452 +1,121 @@
 # Health Monitor - Implementation Progress
 
-## ✅ Completed (Фаза 0-1: Инфраструктура и базовая архитектура)
-
-### Infrastructure Setup
-- [x] Go module initialization
-- [x] Project directory structure
-- [x] .gitignore, .dockerignore
-- [x] Makefile with 20+ commands
-- [x] Dockerfile (multi-stage build)
-- [x] docker-compose.yml
-- [x] .golangci.yml (linter configuration)
-- [x] README.md (comprehensive documentation)
-
-### Domain Layer (internal/domain/)
-- [x] Target models (target.go)
-  - HTTP, TCP, DNS, ICMP configurations
-- [x] CheckResult models (check_result.go)
-  - CheckStatus, CheckResult, CheckStats
-- [x] Alert models (alert.go)
-  - Alert, AlertRule, AlertSeverity
-- [x] Incident models (incident.go)
-  - Incident tracking for downtime
-- [x] Core interfaces (interfaces.go)
-  - Checker, TargetRepository, CheckResultRepository
-  - IncidentRepository, Notifier, Scheduler
-  - AlertManager, CheckerRegistry
-
-### Configuration System (pkg/config/)
-- [x] Config structures (config.go)
-- [x] Config loader with Viper (loader.go)
-- [x] YAML configuration support
-- [x] Environment variables override
-- [x] Example configuration (configs/example.yaml)
-
-### Logging System (pkg/logger/)
-- [x] Logger wrapper for zerolog (logger.go)
-- [x] Multiple log levels (debug, info, warn, error)
-- [x] Multiple formats (json, console)
-- [x] Output options (stdout, stderr, file)
-
-### Application Entry Point (cmd/server/)
-- [x] main.go with graceful shutdown
-- [x] Signal handling (SIGTERM, SIGINT)
-- [x] Version information
-- [x] Configuration loading
-- [x] Context-based lifecycle
+> Документ отражает **фактическое** состояние кода (сверено с git и исходниками).
 
 ---
 
-## ✅ Completed (Фаза 2: Storage Layer)
+## ✅ Completed
 
-### Database Schema & Migrations
-- [x] Create migration files (migrations/001_initial_schema.sql)
-- [x] Targets table schema
-- [x] Check results table schema
-- [x] Incidents table schema
-- [x] Alerts table schema
-- [x] Indices for performance (14 indices total)
+### Фаза 0-1: Инфраструктура и базовая архитектура
+- [x] Go module, структура проекта, `.gitignore`/`.dockerignore`
+- [x] Makefile (20+ команд), Dockerfile (multi-stage, CGO для SQLite), docker-compose
+- [x] `.golangci.yml`, README.md
+- [x] Domain Layer (`internal/domain/`): Target, CheckResult, Alert, Incident, NotifierConfig + интерфейсы (Checker, *Repository, Notifier, Scheduler, AlertManager, CheckerRegistry, NotifierRepository)
+- [x] Configuration (`pkg/config/`): Viper, YAML, env override (явный binding env vars — `cc21b15`)
+- [x] Logging (`pkg/logger/`): zerolog, уровни, json/console, stdout/stderr/file
+- [x] Entry point (`cmd/server/main.go`): graceful shutdown, signal handling, lifecycle
 
-### Storage Implementation (internal/storage/)
-- [x] Database connection manager (database.go)
-  - SQLite support
-  - GORM integration
-  - AutoMigrate functionality
-  - Connection pooling configuration
-  - Zerolog integration
-  - Auto-create database directory
-- [x] GORM models (internal/storage/models/)
-  - Target model with JSON conversion
-  - CheckResult model
-  - Incident model
-  - Domain ↔ Database conversions
-- [x] TargetRepository implementation (target_repository.go)
-  - Create, Get, List, ListEnabled, Update, Delete
-- [x] CheckResultRepository implementation (check_result_repository.go)
-  - Save, GetLatest, GetHistory, GetHistoryInRange
-  - GetStats with uptime % calculation
-  - DeleteOlderThan for data retention
-- [x] IncidentRepository implementation (incident_repository.go)
-  - Create, Get, GetOngoing, List, ListByTarget
-  - Update, Resolve
-- [x] Integration with main.go
-  - Database initialization on startup
-  - Graceful shutdown with cleanup
+### Фаза 2: Storage Layer
+- [x] Миграции (`migrations/001_initial_schema.sql`), таблицы targets/check_results/incidents/alerts + 14 индексов
+- [x] GORM + SQLite, AutoMigrate, connection pooling, auto-create db dir
+- [x] Репозитории: TargetRepository, CheckResultRepository (история, stats, DeleteOlderThan), IncidentRepository
+- [x] **NotifierRepository** + модель/миграция (`8155946`) — конфиги нотификаторов в БД
 
----
+### Фаза 3: HTTP Checker
+- [x] Checker registry (thread-safe), HTTP/HTTPS checker
+- [x] Status code, response time, SSL validation + expiry warning, custom headers/methods, redirects, skip-verify
+- [x] Тесты (`internal/checker/http_test.go`)
 
-## ✅ Completed (Фаза 3: HTTP Checker)
+### Фаза 4: Scheduler
+- [x] Ticker-based, независимые интервалы на target, concurrent execution (goroutine на target)
+- [x] AddTarget/RemoveTarget/UpdateTarget, graceful shutdown (WaitGroup)
+- [x] Загрузка targets, сохранение результатов, обработка через AlertManager
 
-### HTTP Checker Implementation
-- [x] Checker registry (internal/checker/registry.go)
-  - Thread-safe registration and retrieval
-  - List all registered checker types
-  - Default registry with HTTP checker
-- [x] HTTP/HTTPS checker (internal/checker/http.go)
-  - Status code validation
-  - Response time measurement
-  - SSL certificate validation
-  - SSL expiry check with configurable threshold
-  - Custom headers and HTTP methods
-  - Configurable redirects (follow/don't follow)
-  - Configurable SSL verification (skip for self-signed)
-  - Max response time warnings
-  - Rich metadata in results
-- [x] Comprehensive test suite (internal/checker/http_test.go)
-  - Success scenario test (real endpoint)
-  - Invalid URL test
-  - Wrong status code test
-  - Configuration validation tests
-  - All tests passing (verified with alfabank.far-harbor.ru)
-- [x] Integration with main.go
-  - Checker registry initialization
-  - Logging of registered checkers
+### Фаза 5-6: Alert System
+- [x] AlertManager (`internal/alerting/manager.go`): state per target, consecutive fail/success, rule engine
+- [x] Правила: consecutive failures, response-time threshold, SSL expiry, DOWN/UP transitions
+- [x] Incident management (создание/резолв, last error)
+- [x] Notifier registry + broadcast, интеграция со scheduler
+- [x] **ClearNotifiers** для hot-reload (`f9cb8d2`)
+- [x] Тесты (`internal/alerting/manager_test.go`)
+
+### Фаза 7: Notification System
+- [x] **Telegram** (`telegram.go`): Bot API, multiple chat IDs, Markdown, иконки/severity, **proxy (http/https/socks5)** ✨
+- [x] **Email/SMTP** (`email.go`): auth, TLS/SSL (incl. implicit TLS на 465 — `f573485`), HTML+plaintext multipart
+- [x] **Gmail Service Account** (`gmail.go`): domain-wide delegation, impersonation
+- [x] **Gmail OAuth2** (`gmail_oauth.go`): личный аккаунт через credentials/token файлы
+- [x] **Webhook (generic)** (`webhook.go`): url/method/custom headers/payload-шаблон (text/template), retry+backoff на 5xx/429, опц. proxy ✨
+- [x] Тесты для telegram/email/webhook
+- [x] **Notifier CRUD через REST API** (`1034d6f`) + hot-reload + маскирование секретов; нотификаторы управляются из БД/UI, не из YAML (`8518538`)
+
+### Фаза 8: HTTP API
+- [x] Chi router v5, конфигурируемые таймауты, graceful shutdown
+- [x] Middleware: Request ID, Real IP, logging, recovery, timeout, CORS, **Basic Auth** (`fbdbe5a`)
+- [x] Targets CRUD + results + stats; Incidents (list/get/ongoing); Notifiers CRUD; `GET /health`
+- [x] **OpenAPI/Swagger**: `oapi-codegen` (`internal/generated/api.gen.go`), swagger handlers (`swagger_handlers.go`, `openapi_adapter.go`)
+
+### Фаза 9: Web Dashboard
+- [x] SPA (`web/static/index.html`), vanilla JS, адаптивная вёрстка
+- [x] Stats cards, target cards со статусами, последние инциденты
+- [x] **Полный CRUD targets и notifiers** через UI-модалки (`c274a8d`, `c776017`); per-type поля нотификаторов
+- [x] Auto-refresh **polling каждые 10с** (не SSE), manual refresh
+- [x] Static file server через Chi
+
+### Deployment
+- [x] **Production docker-compose** (`docker-compose.prod.yml`) + Traefik labels + `DOMAIN`/basic-auth env (`a3a9f9f`, `5d4d98a`, `578b240`)
+- [x] `.env` / `.env.example`, mount secrets volume (`4bd3014`)
 
 ---
 
-## ✅ Completed (Фаза 4: Scheduler System)
+## ⏳ Not Done (по плану)
 
-### Scheduler Implementation
-- [x] Scheduler core (internal/scheduler/scheduler.go)
-  - Ticker-based scheduling with independent intervals per target
-  - Concurrent task execution with goroutines
-  - Thread-safe task management (sync.RWMutex)
-  - AddTarget, RemoveTarget, UpdateTarget operations
-  - Graceful shutdown with WaitGroup
-  - Automatic check execution and result storage
-- [x] Target loader (internal/scheduler/loader.go)
-  - Load targets from configuration
-  - Parse duration strings (interval, timeout)
-  - Convert config to domain models
-- [x] Integration with main application
-  - Auto-load targets from YAML config
-  - Save targets to database
-  - Execute checks according to schedules
-  - Full lifecycle management (start/stop)
-- [x] Testing and verification
-  - Tested with real endpoints
-  - Multiple targets with different intervals (30s, 60s)
-  - Results saved to database
-  - Graceful shutdown verified
-
----
-
-## ✅ Completed (Фаза 5-6: Alert System)
-
-### Alert Manager Implementation
-- [x] AlertManager core (internal/alerting/manager.go)
-  - Thread-safe state tracking per target
-  - Consecutive failures/successes counting
-  - Alert rule evaluation engine
-  - Incident creation and resolution
-  - Alert deduplication with cooldown periods
-- [x] Alert rule engine
-  - Consecutive failures detection (default: 3 failures)
-  - Response time threshold alerts (default: 5000ms)
-  - SSL certificate expiry warnings (default: 30 days)
-  - Target DOWN/UP transition alerts
-- [x] Incident management
-  - Automatic incident creation on first failure
-  - Failure count tracking
-  - Automatic resolution on recovery
-  - Last error tracking
-- [x] Notifier integration
-  - Notifier registry for pluggable notification channels
-  - Alert broadcasting to all registered notifiers
-- [x] Integration with scheduler
-  - Check results automatically processed by AlertManager
-  - Real-time alert evaluation after each check
-- [x] Comprehensive test suite (internal/alerting/manager_test.go)
-  - Incident creation and resolution tests
-  - Consecutive failures tracking tests
-  - State management tests
-  - Alert creation tests (DOWN, UP, slow response, SSL expiry)
-  - All 8 tests passing
-
----
-
-## ✅ Completed (Фаза 7: Notification System)
-
-### Telegram Notifier Implementation
-- [x] Telegram notifier (internal/notifier/telegram.go)
-  - Telegram Bot API integration
-  - HTTP client with 10s timeout
-  - Multiple chat IDs support
-  - Markdown message formatting
-  - Special characters escaping for Markdown
-  - Retry-safe error handling
-- [x] Rich message formatting
-  - Alert type icons (🔴 DOWN, 🟢 UP, 🐌 slow, 🔐 SSL, ⚠️ failures)
-  - Severity-based icons (🚨 critical, ℹ️ info)
-  - Structured message layout
-  - Metadata display
-  - Timestamp formatting
-- [x] Integration with AlertManager
-  - Notifier registry in main.go
-  - Configuration loading from YAML
-  - Enable/disable support per notifier
-  - Multiple notifiers support
-- [x] Comprehensive test suite (internal/notifier/telegram_test.go)
-  - Configuration validation tests
-  - Message formatting tests
-  - Icon selection tests
-  - Markdown escaping tests
-  - Integration test (manual)
-  - All 6 test suites passing (54.4% coverage)
-- [x] Configuration support
-  - Bot token configuration
-  - Multiple chat IDs
-  - Enable/disable flag
-  - Example configuration in configs/example.yaml
-
----
-
-## ✅ Completed (Фаза 7: Notification System - Email)
-
-### Email Notifier Implementation
-- [x] Email notifier (internal/notifier/email.go)
-  - SMTP client with authentication
-  - TLS/SSL support (configurable)
-  - Multiple recipients support
-  - Configurable SMTP host and port
-  - SMTP authentication (username/password)
-- [x] Rich email formatting
-  - HTML email templates with CSS styling
-  - Plain text fallback
-  - Multipart/alternative MIME format
-  - Severity-based header colors (red, yellow, blue)
-  - Alert type icons in emails
-  - Structured layout with info rows
-  - Metadata section
-- [x] Template system
-  - Go html/template engine
-  - Dynamic subject generation with severity prefix
-  - HTML body with responsive design
-  - Plain text body for compatibility
-- [x] Integration with AlertManager
-  - Email notifier registration in main.go
-  - Configuration loading from YAML
-  - Enable/disable support per notifier
-  - Multiple notifiers support
-- [x] Comprehensive test suite (internal/notifier/email_test.go)
-  - Configuration validation tests (9 scenarios)
-  - Subject building tests (3 severity levels)
-  - Plain text body formatting tests
-  - HTML body formatting tests
-  - Severity color tests
-  - Icon selection tests
-  - MIME message building tests
-  - All 9 test suites passing
-- [x] Configuration support
-  - SMTP settings (host, port, user, password)
-  - From address
-  - Multiple To addresses
-  - TLS/SSL toggle
-  - Example configuration in configs/example.yaml
-
----
-
-## ✅ Completed (Фаза 8: HTTP API)
-
-### HTTP API Implementation
-- [x] API Server (internal/api/server.go)
-  - Chi router v5
-  - HTTP server with configurable timeouts
-  - Graceful shutdown support
-  - Server lifecycle management
-- [x] Middleware stack
-  - Request ID middleware
-  - Real IP detection
-  - Logging middleware with request/response details
-  - Recovery middleware (panic handler)
-  - Timeout middleware (60s default)
-  - CORS middleware (configurable)
-- [x] REST Endpoints
-  - Health check: `GET /health`
-  - Targets CRUD:
-    - `GET /api/v1/targets` - list
-    - `POST /api/v1/targets` - create
-    - `GET /api/v1/targets/{id}` - get
-    - `PUT /api/v1/targets/{id}` - update
-    - `DELETE /api/v1/targets/{id}` - delete
-    - `GET /api/v1/targets/{id}/results` - history
-    - `GET /api/v1/targets/{id}/stats` - statistics
-  - Incidents:
-    - `GET /api/v1/incidents` - list all
-    - `GET /api/v1/incidents/{id}` - get by ID
-    - `GET /api/v1/incidents/ongoing` - filter ongoing
-  - Results endpoints (placeholders for future)
-- [x] HTTP Handlers (internal/api/handlers.go)
-  - JSON request/response handling
-  - Error response formatting
-  - Query parameter parsing (limit, offset, period)
-  - Proper HTTP status codes
-- [x] Integration
-  - Integrated with main.go
-  - Runs concurrently with scheduler
-  - Uses shared repositories
-  - Graceful shutdown coordination
-- [x] Dependencies
-  - github.com/go-chi/chi/v5 v5.2.3
-  - github.com/go-chi/cors v1.2.2
-
----
-
-## ✅ Completed (Фаза 9: Web Dashboard)
-
-### Web UI Implementation
-- [x] Static web dashboard (web/static/index.html)
-  - Single-page application
-  - Vanilla JavaScript (no frameworks)
-  - Modern CSS with gradients and animations
-  - Responsive design (mobile-friendly)
-- [x] Dashboard Features
-  - Real-time target monitoring
-  - Health statistics cards:
-    - Total targets
-    - Healthy targets (green)
-    - Failing targets (red)
-    - Active incidents (orange)
-  - Target cards with status badges
-  - Recent incidents list (last 10)
-  - Auto-refresh every 10 seconds
-  - Manual refresh button
-  - Last updated timestamp
-- [x] UI Components
-  - Gradient header (purple theme)
-  - Stats grid (4 cards)
-  - Target cards with hover effects
-  - Incident cards (color-coded: red for ongoing, green for resolved)
-  - Loading spinners
-  - Empty states with icons
-  - Status badges (success/failure/unknown)
-- [x] API Integration
-  - Fetch API for data loading
-  - GET /api/v1/targets
-  - GET /api/v1/targets/{id}/results
-  - GET /api/v1/incidents
-  - Error handling with user-friendly messages
-- [x] Static File Server
-  - Configured in internal/api/server.go
-  - Serves index.html at /
-  - Static assets at /static/*
-  - Integration with Chi router
-
----
-
-## 📋 Planned (Фаза 5-10: Extended Functionality)
-
-### Phase 5: Additional Checkers
-- [ ] TCP checker (internal/checker/tcp.go)
-  - Port connectivity check
-  - Connection timeout
-- [ ] DNS checker (internal/checker/dns.go)
-  - Record type resolution
-  - Expected IP validation
-- [ ] ICMP checker (internal/checker/icmp.go)
-  - Ping functionality
-  - RTT measurement
-- [ ] Unit tests for additional checkers
-
-### Phase 6: Notification System (Remaining)
-- [ ] Webhook notifier (Slack, Discord, etc.)
-  - Template support
-  - Custom headers
-  - Retry logic
-
----
-
-## 🎯 Future Enhancements (Фаза 9+)
-
-### Web Interface
-- [ ] Dashboard page
-  - Target status overview
-  - Real-time updates (SSE)
-  - Charts (uptime, response time)
-- [ ] Target detail page
-  - Check history
-  - Statistics
-  - Configuration display
-- [ ] Incident history page
-- [ ] Settings page
-
-### Advanced Features
-- [ ] Multi-user support
-- [ ] Role-based access control (RBAC)
-- [ ] API tokens
-- [ ] PostgreSQL support
-- [ ] Metrics export (Prometheus)
-- [ ] Custom script checker
-- [ ] Maintenance windows
-- [ ] Status page generation
-- [ ] Alert grouping
-- [ ] Alert silencing
-
-### Operational
-- [ ] Systemd service file
-- [ ] Kubernetes manifests
-- [ ] Helm chart
-- [ ] CI/CD pipelines
-- [ ] Performance benchmarks
-- [ ] Load testing
-- [ ] Security audit
+- [ ] **Дополнительные чекеры**: TCP, DNS, ICMP (`internal/checker/` — только http.go)
+- [ ] **SSE / real-time** (`GET /api/v1/events`) — сейчас UI на polling'е
+- [ ] **Target detail page** с графиками (Chart.js): uptime 24h/7d/30d, история чекетов
+- [ ] **Worker pool** в scheduler (сейчас goroutine-per-target без bounded pool/очереди)
+- [ ] **Data retention job** (метод `DeleteOlderThan` есть, фонового cleanup нет)
+- [ ] **Prometheus `/metrics`**
+- [ ] **CLI**: `validate`, `backup`/`restore`
+- [ ] **CI/CD** (GitHub Actions), load/security тесты
+- [ ] PostgreSQL adapter, RBAC/multi-user, maintenance windows, status page, alert routing/escalation, quiet hours
 
 ---
 
 ## 📊 Current Status
 
-**Overall Progress: 80%**
+| Компонент | % |
+|---|---|
+| Infrastructure / Domain / Config / Logging | 100% |
+| Storage (SQLite + repos + notifier configs) | 100% |
+| HTTP Checker | 100% |
+| Scheduler (без worker pool) | 90% |
+| Alert Manager (+ hot-reload) | 100% |
+| Notifiers: Telegram(+proxy)/Email/Gmail SA/Gmail OAuth/Webhook | 100% |
+| HTTP API (+ OpenAPI/Swagger, Basic Auth) | 100% |
+| Web Dashboard (полный CRUD, polling) | 95% |
+| Prod deploy (Traefik) | 100% |
+| Доп. чекеры (TCP/DNS/ICMP) | 0% |
+| SSE / графики / retention job / metrics | 0% |
 
-- ✅ Infrastructure: 100%
-- ✅ Domain Models: 100%
-- ✅ Configuration: 100%
-- ✅ Logging: 100%
-- ✅ Storage: 100%
-- ✅ HTTP Checker: 100%
-- ✅ Scheduler: 100%
-- ✅ Alert Manager: 100%
-- ✅ Telegram Notifier: 100%
-- ✅ Email Notifier: 100%
-- ✅ HTTP API: 100%
-- ✅ Web Dashboard: 100%
-- ⏳ Additional Checkers: 0%
-- ⏳ Webhook Notifier: 0%
-
-**Last Updated:** 2025-12-10
+**Last Updated:** 2026-06-26
 
 ---
 
-## 🚀 Next Steps
+## 🚀 Next Steps (приоритет)
 
-1. **✅ DONE: Storage Layer** - Migrations and repositories implemented
-2. **✅ DONE: HTTP Checker** - Fully implemented with SSL validation
-3. **✅ DONE: Scheduler** - Periodic check execution with concurrent tasks
-4. **✅ DONE: Alert Manager** - Alert rules, incident tracking, and notification system
-5. **✅ DONE: Telegram Notifier** - Rich Markdown notifications with icons and metadata
-6. **✅ DONE: Email Notifier** - HTML/plain text emails with SMTP
-7. **✅ DONE: HTTP API** - REST endpoints with Chi router
-8. **✅ DONE: Web Dashboard** - Real-time monitoring interface
-9. **Webhook Notifier** - Send notifications to Slack, Discord, etc.
-10. **Additional Checkers** - TCP, DNS, ICMP support
+1. **TCP checker** — закрывает заметный пробел, тривиально ложится в существующий registry
+2. **DNS / ICMP checkers**
+3. **SSE real-time** + замена polling'а в UI
+4. **Target detail page** с графиками (Chart.js)
+5. **Worker pool** + **retention cleanup job**
+6. **Prometheus `/metrics`**, CLI `validate`/`backup`, CI/CD
 
 ---
 
 ## 📝 Notes
-
-- Using Clean Architecture principles
-- All components are interface-based for testability
-- Dependency injection throughout
-- Graceful shutdown for all components
-- Comprehensive error handling
-- Structured logging with context
+- Clean Architecture, interface-based DI, graceful shutdown везде
+- Targets и notifiers управляются **только через API/UI** (убраны из YAML)
+- Новый тип нотификатора подключается в 3 слоях: `internal/notifier/<type>.go` → два switch'а (`cmd/server/main.go`, `internal/api/notifier_handlers.go`) → UI (`web/static/index.html`)
+- Конфиги нотификаторов валидируются через конструктор при create/update (битый url/шаблон/прокси → 400)
+- Известные ограничения маскирования: значения внутри webhook `headers` (напр. `Authorization`) и креды в `proxy_url` (`socks5://user:pass@...`) **не маскируются** в ответах API — маскируются только top-level sensitive-ключи (`bot_token`, `password`, `token`, `secret`, `smtp_password`)
+- Известное ограничение dispatch: AlertManager хранит нотификаторы в map по `Type()` (один на тип) и рассылает **последовательно** в рамках одного алерта (ограничено контекстом проверки `target.Timeout+5s`)
