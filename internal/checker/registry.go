@@ -52,5 +52,6 @@ func (r *Registry) List() []domain.TargetType {
 func NewDefaultRegistry() *Registry {
 	registry := NewRegistry()
 	registry.Register(NewHTTPChecker())
+	registry.Register(NewTCPChecker())
 	return registry
 }

@@ -537,17 +537,34 @@
 
                 <div class="form-group">
                     <label class="form-label">Type *</label>
-                    <select id="formType" class="form-select" required>
+                    <select id="formType" class="form-select" required onchange="onTargetTypeChange()">
                         <option value="http">HTTP/HTTPS</option>
                         <option value="tcp">TCP Port</option>
-                        <option value="dns">DNS</option>
-                        <option value="icmp">ICMP (Ping)</option>
                     </select>
                 </div>
 
-                <div class="form-group">
-                    <label class="form-label">URL *</label>
-                    <input type="url" id="formUrl" class="form-input" required placeholder="https://api.example.com/health">
+                <!-- HTTP fields -->
+                <div id="target-fields-http" class="dynamic-fields active">
+                    <div class="form-group">
+                        <label class="form-label">URL *</label>
+                        <input type="url" id="formUrl" class="form-input" placeholder="https://api.example.com/health">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Expected Status Code</label>
+                        <input type="number" id="formStatusCode" class="form-input" value="200" placeholder="200">
+                    </div>
+                </div>
+
+                <!-- TCP fields -->
+                <div id="target-fields-tcp" class="dynamic-fields">
+                    <div class="form-group">
+                        <label class="form-label">Host *</label>
+                        <input type="text" id="formTcpHost" class="form-input" placeholder="db.example.com">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Port *</label>
+                        <input type="number" id="formTcpPort" class="form-input" placeholder="5432" min="1" max="65535">
+                    </div>
                 </div>
 
                 <div class="form-group">
@@ -558,11 +575,6 @@
                 <div class="form-group">
                     <label class="form-label">Timeout (e.g., 10s) *</label>
                     <input type="text" id="formTimeout" class="form-input" required value="10s" placeholder="10s">
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">Expected Status Code</label>
-                    <input type="number" id="formStatusCode" class="form-input" value="200" placeholder="200">
                 </div>
 
                 <div class="form-group">
@@ -812,12 +824,21 @@
             return response.json();
         }
 
+        function onTargetTypeChange() {
+            const type = document.getElementById('formType').value;
+            ['http','tcp'].forEach(t => {
+                document.getElementById(`target-fields-${t}`).classList.toggle('active', t === type);
+            });
+        }
+
         function showCreateModal() {
             editingTargetId = null;
             document.getElementById('modalTitle').textContent = 'Add New Target';
             document.getElementById('targetForm').reset();
             document.getElementById('formEnabled').checked = true;
             document.getElementById('formTargetId').readOnly = false;
+            document.getElementById('formType').value = 'http';
+            onTargetTypeChange();
             document.getElementById('targetModal').classList.add('active');
         }
 
@@ -828,10 +849,17 @@
             document.getElementById('formTargetId').readOnly = true;
             document.getElementById('formName').value = target.name;
             document.getElementById('formType').value = target.type;
-            document.getElementById('formUrl').value = target.config.url || '';
+            onTargetTypeChange();
+            const c = target.config || {};
+            if (target.type === 'tcp') {
+                document.getElementById('formTcpHost').value = c.host || '';
+                document.getElementById('formTcpPort').value = c.port || '';
+            } else {
+                document.getElementById('formUrl').value = c.url || '';
+                document.getElementById('formStatusCode').value = c.expected_status_code || 200;
+            }
             document.getElementById('formInterval').value = formatDuration(target.interval);
             document.getElementById('formTimeout').value = formatDuration(target.timeout);
-            document.getElementById('formStatusCode').value = target.config.expected_status_code || 200;
             document.getElementById('formDescription').value = target.description || '';
             document.getElementById('formEnabled').checked = target.enabled;
             document.getElementById('targetModal').classList.add('active');
@@ -859,22 +887,36 @@
         async function saveTarget(event) {
             event.preventDefault();
 
+            const type = document.getElementById('formType').value;
+            let config;
+            if (type === 'tcp') {
+                const host = document.getElementById('formTcpHost').value.trim();
+                const port = parseInt(document.getElementById('formTcpPort').value);
+                if (!host) { alert('Host is required for TCP'); return; }
+                if (!port || port < 1 || port > 65535) { alert('Port must be 1–65535'); return; }
+                config = { host, port };
+            } else {
+                const url = document.getElementById('formUrl').value.trim();
+                if (!url) { alert('URL is required for HTTP'); return; }
+                config = {
+                    url,
+                    method: 'GET',
+                    expected_status_code: parseInt(document.getElementById('formStatusCode').value) || 200,
+                    validate_ssl: true,
+                    check_ssl_expiry: true,
+                };
+            }
+
             const targetData = {
                 id: document.getElementById('formTargetId').value,
                 name: document.getElementById('formName').value,
-                type: document.getElementById('formType').value,
+                type,
                 enabled: document.getElementById('formEnabled').checked,
                 interval: parseDuration(document.getElementById('formInterval').value),
                 timeout: parseDuration(document.getElementById('formTimeout').value),
                 description: document.getElementById('formDescription').value,
                 tags: [],
-                config: {
-                    url: document.getElementById('formUrl').value,
-                    method: 'GET',
-                    expected_status_code: parseInt(document.getElementById('formStatusCode').value) || 200,
-                    validate_ssl: true,
-                    check_ssl_expiry: true,
-                },
+                config,
             };
 
             try {
@@ -953,6 +995,8 @@
                     const responseTime = lastResult?.response_time_ms || '-';
                     const lastCheck = lastResult ? new Date(lastResult.checked_at).toLocaleString() : 'Never';
                     const enabled = target.enabled ? '✅' : '❌';
+                    const tc = target.config || {};
+                    const endpoint = target.type === 'tcp' ? `${tc.host || ''}:${tc.port || ''}` : (tc.url || '—');
 
                     return `
                         <div class="target-card">
@@ -967,6 +1011,9 @@
                             <div class="target-info">
                                 <div class="info-item">
                                     <strong>Type:</strong> ${target.type.toUpperCase()}
+                                </div>
+                                <div class="info-item">
+                                    <strong>Endpoint:</strong> ${endpoint}
                                 </div>
                                 <div class="info-item">
                                     <strong>Status:</strong> ${enabled} ${target.enabled ? 'Enabled' : 'Disabled'}

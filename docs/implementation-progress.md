@@ -21,10 +21,12 @@
 - [x] Репозитории: TargetRepository, CheckResultRepository (история, stats, DeleteOlderThan), IncidentRepository
 - [x] **NotifierRepository** + модель/миграция (`8155946`) — конфиги нотификаторов в БД
 
-### Фаза 3: HTTP Checker
-- [x] Checker registry (thread-safe), HTTP/HTTPS checker
-- [x] Status code, response time, SSL validation + expiry warning, custom headers/methods, redirects, skip-verify
-- [x] Тесты (`internal/checker/http_test.go`)
+### Фаза 3-5: Checkers
+- [x] Checker registry (thread-safe), резолв checker'а по `target.Type`
+- [x] **HTTP/HTTPS** checker: status code, response time, SSL validation + expiry warning, custom headers/methods, redirects, skip-verify
+- [x] **TCP** checker (`tcp.go`): проверка доступности порта + connection time, метадата host/port/address ✨
+- [x] Тесты (`http_test.go`, `tcp_test.go`)
+- [x] UI: форма таргета **type-aware** (HTTP url/status vs TCP host/port), endpoint в карточке
 
 ### Фаза 4: Scheduler
 - [x] Ticker-based, независимые интервалы на target, concurrent execution (goroutine на target)
@@ -69,7 +71,7 @@
 
 ## ⏳ Not Done (по плану)
 
-- [ ] **Дополнительные чекеры**: TCP, DNS, ICMP (`internal/checker/` — только http.go)
+- [ ] **Дополнительные чекеры**: DNS, ICMP (есть http.go + tcp.go)
 - [ ] **SSE / real-time** (`GET /api/v1/events`) — сейчас UI на polling'е
 - [ ] **Target detail page** с графиками (Chart.js): uptime 24h/7d/30d, история чекетов
 - [ ] **Worker pool** в scheduler (сейчас goroutine-per-target без bounded pool/очереди)
@@ -87,14 +89,14 @@
 |---|---|
 | Infrastructure / Domain / Config / Logging | 100% |
 | Storage (SQLite + repos + notifier configs) | 100% |
-| HTTP Checker | 100% |
+| Checkers: HTTP + TCP | 100% |
 | Scheduler (без worker pool) | 90% |
 | Alert Manager (+ hot-reload) | 100% |
 | Notifiers: Telegram(+proxy)/Email/Gmail SA/Gmail OAuth/Webhook | 100% |
 | HTTP API (+ OpenAPI/Swagger, Basic Auth) | 100% |
 | Web Dashboard (полный CRUD, polling) | 95% |
 | Prod deploy (Traefik) | 100% |
-| Доп. чекеры (TCP/DNS/ICMP) | 0% |
+| Доп. чекеры (DNS/ICMP) | 0% |
 | SSE / графики / retention job / metrics | 0% |
 
 **Last Updated:** 2026-06-26
@@ -103,11 +105,11 @@
 
 ## 🚀 Next Steps (приоритет)
 
-1. **TCP checker** — закрывает заметный пробел, тривиально ложится в существующий registry
-2. **DNS / ICMP checkers**
+1. **DNS / ICMP checkers** (тот же паттерн, что TCP)
+2. **Retention cleanup job** — фоновая очистка по `cleanup_interval` (метод `DeleteOlderThan` готов)
 3. **SSE real-time** + замена polling'а в UI
 4. **Target detail page** с графиками (Chart.js)
-5. **Worker pool** + **retention cleanup job**
+5. **Worker pool** в scheduler
 6. **Prometheus `/metrics`**, CLI `validate`/`backup`, CI/CD
 
 ---
