@@ -64,6 +64,10 @@
 - [x] Auto-refresh **polling каждые 10с** (не SSE), manual refresh
 - [x] Static file server через Chi
 
+### Data Retention
+- [x] Фоновая очистка (`internal/retention/cleaner.go`): удаление старых check_results и resolved-инцидентов по `RetentionConfig` (`cleanup_interval`), initial sweep при старте, graceful stop по ctx ✨
+- [x] `DeleteResolvedOlderThan` в IncidentRepository, тесты cleaner'а
+
 ### Deployment
 - [x] **Production docker-compose** (`docker-compose.prod.yml`) + Traefik labels + `DOMAIN`/basic-auth env (`a3a9f9f`, `5d4d98a`, `578b240`)
 - [x] `.env` / `.env.example`, mount secrets volume (`4bd3014`)
@@ -76,7 +80,6 @@
 - [ ] **SSE / real-time** (`GET /api/v1/events`) — сейчас UI на polling'е
 - [ ] **Target detail page** с графиками (Chart.js): uptime 24h/7d/30d, история чекетов
 - [ ] **Worker pool** в scheduler (сейчас goroutine-per-target без bounded pool/очереди)
-- [ ] **Data retention job** (метод `DeleteOlderThan` есть, фонового cleanup нет)
 - [ ] **Prometheus `/metrics`**
 - [ ] **CLI**: `validate`, `backup`/`restore`
 - [ ] **CI/CD** (GitHub Actions), load/security тесты
@@ -97,25 +100,30 @@
 | HTTP API (+ OpenAPI/Swagger, Basic Auth) | 100% |
 | Web Dashboard (полный CRUD, polling) | 95% |
 | Prod deploy (Traefik) | 100% |
+| Data Retention (cleanup job) | 100% |
 | Доп. чекеры (ICMP) | 0% |
-| SSE / графики / retention job / metrics | 0% |
+| SSE / графики / metrics | 0% |
 
-**Last Updated:** 2026-06-26
+**Last Updated:** 2026-06-27
 
 ---
 
 ## 🚀 Next Steps (приоритет)
 
 1. **ICMP/Ping checker** (требует привилегий — CAP_NET_RAW)
-2. **Retention cleanup job** — фоновая очистка по `cleanup_interval` (метод `DeleteOlderThan` готов)
-3. **SSE real-time** + замена polling'а в UI
-4. **Target detail page** с графиками (Chart.js)
-5. **Worker pool** в scheduler
-6. **Prometheus `/metrics`**, CLI `validate`/`backup`, CI/CD
+2. **SSE real-time** + замена polling'а в UI
+3. **Target detail page** с графиками (Chart.js)
+4. **Worker pool** в scheduler
+5. **Prometheus `/metrics`**, CLI `validate`/`backup`, CI/CD
 
 ---
 
+## 📚 Docs
+
+- [`docs/checkers.md`](checkers.md) — как использовать HTTP/TCP/DNS проверки (поля config, примеры API/UI, retention)
+
 ## 📝 Notes
+
 - Clean Architecture, interface-based DI, graceful shutdown везде
 - Targets и notifiers управляются **только через API/UI** (убраны из YAML)
 - Новый тип нотификатора подключается в 3 слоях: `internal/notifier/<type>.go` → два switch'а (`cmd/server/main.go`, `internal/api/notifier_handlers.go`) → UI (`web/static/index.html`)
