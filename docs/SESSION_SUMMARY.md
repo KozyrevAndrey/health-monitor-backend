@@ -1,84 +1,84 @@
 # Health Monitor - Session Summary
 
-## Дата: 2025-12-09
+## Date: 2025-12-09
 
-## Что реализовано
+## What was implemented
 
-### 1. Инфраструктура (Фаза 0-1) ✅
-- Go модуль и структура проекта
-- Makefile с 20+ командами
-- Docker (multi-stage build) и docker-compose
+### 1. Infrastructure (Phase 0-1) ✅
+- Go module and project structure
+- Makefile with 20+ commands
+- Docker (multi-stage build) and docker-compose
 - .gitignore, .dockerignore, .golangci.yml
 - Comprehensive README.md
 
 ### 2. Domain Layer ✅
-- Модели: Target, CheckResult, Incident, Alert
-- Конфигурации для всех типов чекеров (HTTP, TCP, DNS, ICMP)
-- Полный набор интерфейсов:
+- Models: Target, CheckResult, Incident, Alert
+- Configurations for all checker types (HTTP, TCP, DNS, ICMP)
+- Full set of interfaces:
   - Checker, TargetRepository, CheckResultRepository, IncidentRepository
   - Notifier, Scheduler, AlertManager, CheckerRegistry
 
 ### 3. Configuration System ✅
-- Viper для загрузки YAML конфигурации
-- Поддержка environment variables
-- Валидация конфигурации
-- Детальный пример в `configs/example.yaml`
+- Viper for loading YAML configuration
+- Support for environment variables
+- Configuration validation
+- Detailed example in `configs/example.yaml`
 
 ### 4. Logging System ✅
-- Zerolog интеграция
-- Поддержка уровней (debug, info, warn, error)
-- Форматы: JSON и console
+- Zerolog integration
+- Support for levels (debug, info, warn, error)
+- Formats: JSON and console
 - Output: stdout, stderr, file
 
-### 5. Storage Layer (Фаза 2) ✅
+### 5. Storage Layer (Phase 2) ✅
 - GORM + SQLite
 - Auto-migration
-- 3 репозитория:
-  - **TargetRepository**: CRUD операции
-  - **CheckResultRepository**: сохранение результатов, история, статистика
-  - **IncidentRepository**: управление инцидентами
-- 4 таблицы с 14 индексами
+- 3 repositories:
+  - **TargetRepository**: CRUD operations
+  - **CheckResultRepository**: saving results, history, statistics
+  - **IncidentRepository**: incident management
+- 4 tables with 14 indexes
 - Connection pooling
 - Graceful shutdown
 
-### 6. HTTP Checker (Фаза 3) ✅
-- Полная реализация HTTP/HTTPS проверок
-- Функции:
-  - Валидация status code
-  - Измерение response time
+### 6. HTTP Checker (Phase 3) ✅
+- Full implementation of HTTP/HTTPS checks
+- Features:
+  - Status code validation
+  - Response time measurement
   - SSL certificate validation
-  - SSL expiry check (с предупреждениями за N дней)
-  - Custom headers и HTTP methods
+  - SSL expiry check (with warnings N days in advance)
+  - Custom headers and HTTP methods
   - Configurable redirects
-  - Configurable SSL verification (для self-signed)
+  - Configurable SSL verification (for self-signed)
   - Max response time warnings
-- **Checker Registry**: thread-safe регистрация и управление
-- **Comprehensive тесты**: 4 теста, все проходят
-  - Проверено на реальном endpoint (alfabank.far-harbor.ru)
+- **Checker Registry**: thread-safe registration and management
+- **Comprehensive tests**: 4 tests, all passing
+  - Verified against a real endpoint (alfabank.far-harbor.ru)
   - Response time: ~300ms
   - SSL expires: 48 days
 
 ### 7. Git ✅
-- Инициализирован репозиторий
-- 2 коммита:
+- Repository initialized
+- 2 commits:
   1. Initial implementation (infrastructure + storage)
   2. HTTP checker implementation
 
-## Текущее состояние
+## Current state
 
-### Работает
-- ✅ Приложение собирается и запускается
-- ✅ База данных создаётся автоматически
-- ✅ Миграции выполняются
-- ✅ HTTP Checker полностью функционален
-- ✅ Все тесты проходят
-- ✅ Graceful shutdown работает
+### Working
+- ✅ Application builds and runs
+- ✅ Database is created automatically
+- ✅ Migrations run
+- ✅ HTTP Checker is fully functional
+- ✅ All tests pass
+- ✅ Graceful shutdown works
 
-### Исправлено в этой сессии
-- ✅ Docker: включен CGO для SQLite (CGO_ENABLED=1)
-- ✅ Добавлены gcc и musl-dev в Dockerfile для сборки
+### Fixed in this session
+- ✅ Docker: enabled CGO for SQLite (CGO_ENABLED=1)
+- ✅ Added gcc and musl-dev to Dockerfile for the build
 
-## Файловая структура
+## File structure
 
 ```
 health-monitor-backend/
@@ -113,7 +113,7 @@ health-monitor-backend/
 29 files, 4567+ lines of code
 ```
 
-## Прогресс: 45%
+## Progress: 45%
 
 - ✅ Infrastructure: 100%
 - ✅ Domain Models: 100%
@@ -127,63 +127,63 @@ health-monitor-backend/
 - ⏳ Notifiers: 0%
 - ⏳ HTTP API: 0%
 
-## Следующие шаги
+## Next steps
 
-### Приоритет 1: Scheduler
-- Worker pool для concurrent execution
+### Priority 1: Scheduler
+- Worker pool for concurrent execution
 - Ticker-based scheduling
 - Load targets from config/database
 - Graceful start/stop
 
-### Приоритет 2: Alert Manager
+### Priority 2: Alert Manager
 - Process check results
 - Detect consecutive failures
 - Create/resolve incidents
 - Trigger notifications
 
-### Приоритет 3: Webhook Notifier
+### Priority 3: Webhook Notifier
 - Template-based notifications
 - Slack/Discord integration
 - Retry logic
 
-### Приоритет 4: HTTP API
-- REST endpoints для управления
+### Priority 4: HTTP API
+- REST endpoints for management
 - Basic Auth
 - Real-time events (SSE)
 
-### Приоритет 5: Additional Checkers
+### Priority 5: Additional Checkers
 - TCP port checker
 - DNS resolver checker
 - ICMP ping checker
 
-## Команды для запуска
+## Commands to run
 
 ```bash
-# Локальная разработка
-make build          # Собрать проект
-make test           # Запустить тесты
-make run            # Запустить приложение
-make dev            # Запуск без сборки
+# Local development
+make build          # Build the project
+make test           # Run tests
+make run            # Run the application
+make dev            # Run without building
 
 # Docker
-docker-compose up -d          # Запустить в Docker
-docker-compose logs -f        # Смотреть логи
-docker-compose down           # Остановить
+docker-compose up -d          # Run in Docker
+docker-compose logs -f        # View logs
+docker-compose down           # Stop
 
-# Тесты
-go test -v ./internal/checker/...   # Тесты HTTP checker
+# Tests
+go test -v ./internal/checker/...   # HTTP checker tests
 make test-coverage                   # Coverage report
 ```
 
-## Важные заметки
+## Important notes
 
-1. **SQLite + CGO**: Dockerfile настроен с CGO_ENABLED=1 для SQLite
-2. **Database path**: `./data/health-monitor.db` (создаётся автоматически)
-3. **Configuration**: через YAML или environment variables (префикс `HEALTH_MONITOR_`)
-4. **Tests**: Используется реальный endpoint для проверки HTTP checker
-5. **Architecture**: Clean Architecture с полным DI
+1. **SQLite + CGO**: Dockerfile is configured with CGO_ENABLED=1 for SQLite
+2. **Database path**: `./data/health-monitor.db` (created automatically)
+3. **Configuration**: via YAML or environment variables (prefix `HEALTH_MONITOR_`)
+4. **Tests**: A real endpoint is used to verify the HTTP checker
+5. **Architecture**: Clean Architecture with full DI
 
-## Git История
+## Git History
 
 ```bash
 git log --oneline
@@ -194,13 +194,13 @@ git log --oneline
 e0d622c feat: initial implementation - infrastructure and storage layer
 ```
 
-## Контакты для продолжения работы
+## Contacts for continuing work
 
-При возвращении к проекту:
-1. Проверить `docs/implementation-progress.md` для актуального статуса
-2. Следующий шаг: **Scheduler implementation**
-3. Все TODO помечены в коде комментариями
+When returning to the project:
+1. Check `docs/implementation-progress.md` for the current status
+2. Next step: **Scheduler implementation**
+3. All TODOs are marked in the code with comments
 
 ---
 
-**Проект готов к продолжению разработки!** 🚀
+**The project is ready for continued development!** 🚀

@@ -1,62 +1,62 @@
-# Checkers — как использовать каждую проверку
+# Checkers — how to use each check
 
-Health Monitor поддерживает несколько типов проверок (checkers). Тип задаётся полем
-`type` у таргета, а специфичные параметры — в объекте `config`. Таргеты создаются
-**через Web UI** (раздел Targets → Add) или **через REST API** (`POST /api/v1/targets`).
+Health Monitor supports several types of checks (checkers). The type is set by the
+`type` field of a target, and the specific parameters — in the `config` object. Targets are created
+**through the Web UI** (Targets → Add section) or **through the REST API** (`POST /api/v1/targets`).
 
-Поддерживаемые типы: **`http`**, **`tcp`**, **`dns`** (ICMP — в планах).
+Supported types: **`http`**, **`tcp`**, **`dns`** (ICMP — planned).
 
 ---
 
-## Общие поля таргета
+## Common target fields
 
-| Поле | Тип | Описание |
+| Field | Type | Description |
 |---|---|---|
-| `id` | string | Уникальный ID (`[a-z0-9-]+`), напр. `api-prod` |
-| `name` | string | Человекочитаемое имя |
+| `id` | string | Unique ID (`[a-z0-9-]+`), e.g. `api-prod` |
+| `name` | string | Human-readable name |
 | `type` | string | `http` / `tcp` / `dns` |
-| `enabled` | bool | Включён ли таргет |
-| `interval` | int (наносекунды) | Период проверки. В API — **наносекунды** (`30s` = `30000000000`) |
-| `timeout` | int (наносекунды) | Таймаут одной проверки (`10s` = `10000000000`) |
-| `description` | string | Опциональное описание |
-| `tags` | []string | Опциональные теги |
-| `config` | object | Параметры конкретного чекера (см. ниже) |
+| `enabled` | bool | Whether the target is enabled |
+| `interval` | int (nanoseconds) | Check period. In the API — **nanoseconds** (`30s` = `30000000000`) |
+| `timeout` | int (nanoseconds) | Timeout of a single check (`10s` = `10000000000`) |
+| `description` | string | Optional description |
+| `tags` | []string | Optional tags |
+| `config` | object | Parameters of the specific checker (see below) |
 
-> ⚠️ **Важно для API:** `interval` и `timeout` сериализуются как наносекунды
-> (Go `time.Duration`). В UI можно вводить `30s`/`1m`/`5m` — конвертация автоматическая.
+> ⚠️ **Important for the API:** `interval` and `timeout` are serialized as nanoseconds
+> (Go `time.Duration`). In the UI you can enter `30s`/`1m`/`5m` — conversion is automatic.
 
-Каждая проверка возвращает статус: `success` (всё хорошо), `warning` (работает,
-но с нареканием — напр. медленный ответ), `failure` (недоступно/не совпало),
-`unknown` (ещё не проверялось).
+Each check returns a status: `success` (all good), `warning` (working,
+but with a concern — e.g. a slow response), `failure` (unavailable/did not match),
+`unknown` (not yet checked).
 
 ---
 
 ## HTTP / HTTPS (`type: "http"`)
 
-Проверяет HTTP-эндпоинт: код ответа, время ответа, опционально срок SSL-сертификата.
+Checks an HTTP endpoint: response code, response time, and optionally the SSL certificate expiry.
 
-### Поля `config`
+### `config` fields
 
-| Поле | Тип | По умолчанию | Описание |
+| Field | Type | Default | Description |
 |---|---|---|---|
-| `url` | string | — (**обязательно**) | Полный URL, напр. `https://api.example.com/health` |
-| `method` | string | `GET` | HTTP-метод |
-| `headers` | object | — | Кастомные заголовки (string→string) |
-| `body` | string | — | Тело запроса |
-| `expected_status_code` | int | `200` | Ожидаемый код ответа |
-| `max_response_time_ms` | int | — | Порог времени ответа; превышение → статус `warning` |
-| `follow_redirects` | bool | `true` | Следовать ли редиректам |
-| `validate_ssl` | bool | `true` | Проверять валидность TLS-сертификата (`false` — для self-signed) |
-| `check_ssl_expiry` | bool | `false` | Считать дни до истечения сертификата |
-| `ssl_expiry_days` | int | — | Если до истечения ≤ N дней — добавить предупреждение в метадату |
+| `url` | string | — (**required**) | Full URL, e.g. `https://api.example.com/health` |
+| `method` | string | `GET` | HTTP method |
+| `headers` | object | — | Custom headers (string→string) |
+| `body` | string | — | Request body |
+| `expected_status_code` | int | `200` | Expected response code |
+| `max_response_time_ms` | int | — | Response time threshold; exceeding it → `warning` status |
+| `follow_redirects` | bool | `true` | Whether to follow redirects |
+| `validate_ssl` | bool | `true` | Validate the TLS certificate (`false` — for self-signed) |
+| `check_ssl_expiry` | bool | `false` | Count the days until certificate expiry |
+| `ssl_expiry_days` | int | — | If ≤ N days until expiry — add a warning to the metadata |
 
-### Логика результата
-- `failure` — ошибка запроса, либо код ≠ `expected_status_code`.
-- `warning` — код совпал, но время ответа > `max_response_time_ms`.
-- `success` — код совпал и время в норме.
-- Метадата: `url`, `method`, `status_text`, и при `check_ssl_expiry` — `ssl_expiry_days`, `ssl_expires_at`.
+### Result logic
+- `failure` — request error, or code ≠ `expected_status_code`.
+- `warning` — code matched, but response time > `max_response_time_ms`.
+- `success` — code matched and time is within bounds.
+- Metadata: `url`, `method`, `status_text`, and with `check_ssl_expiry` — `ssl_expiry_days`, `ssl_expires_at`.
 
-### Пример (API)
+### Example (API)
 ```bash
 curl -X POST http://localhost:8080/api/v1/targets -H 'Content-Type: application/json' -d '{
   "id": "api-health",
@@ -77,31 +77,31 @@ curl -X POST http://localhost:8080/api/v1/targets -H 'Content-Type: application/
 }'
 ```
 
-### В UI
-Тип **HTTP/HTTPS** → поля **URL** и **Expected Status Code**. Остальные параметры
-(метод GET, validate_ssl, check_ssl_expiry) выставляются разумными значениями по
-умолчанию.
+### In the UI
+Type **HTTP/HTTPS** → **URL** and **Expected Status Code** fields. The remaining parameters
+(method GET, validate_ssl, check_ssl_expiry) are set to sensible default
+values.
 
 ---
 
 ## TCP Port (`type: "tcp"`)
 
-Проверяет доступность TCP-порта и измеряет время установления соединения.
-Подходит для БД (5432, 3306), брокеров, SMTP, любых сокет-сервисов.
+Checks the availability of a TCP port and measures the connection establishment time.
+Suitable for databases (5432, 3306), brokers, SMTP, and any socket services.
 
-### Поля `config`
+### `config` fields
 
-| Поле | Тип | По умолчанию | Описание |
+| Field | Type | Default | Description |
 |---|---|---|---|
-| `host` | string | — (**обязательно**) | Хост или IP |
-| `port` | int | — (**обязательно**) | Порт, 1–65535 |
+| `host` | string | — (**required**) | Host or IP |
+| `port` | int | — (**required**) | Port, 1–65535 |
 
-### Логика результата
-- `success` — соединение установлено (порт открыт). Время в `response_time_ms`.
-- `failure` — отказ/таймаут (напр. `connection refused`). Текст в `error`.
-- Метадата: `host`, `port`, `address`.
+### Result logic
+- `success` — connection established (port is open). Time in `response_time_ms`.
+- `failure` — refused/timeout (e.g. `connection refused`). Text in `error`.
+- Metadata: `host`, `port`, `address`.
 
-### Пример (API)
+### Example (API)
 ```bash
 curl -X POST http://localhost:8080/api/v1/targets -H 'Content-Type: application/json' -d '{
   "id": "postgres-prod",
@@ -114,36 +114,36 @@ curl -X POST http://localhost:8080/api/v1/targets -H 'Content-Type: application/
 }'
 ```
 
-### В UI
-Тип **TCP Port** → поля **Host** и **Port**.
+### In the UI
+Type **TCP Port** → **Host** and **Port** fields.
 
 ---
 
 ## DNS (`type: "dns"`)
 
-Резолвит DNS-записи домена, измеряет время резолва и (опционально) сверяет
-результат с ожидаемыми значениями. Можно указать кастомный DNS-сервер.
+Resolves the DNS records of a domain, measures the resolution time and (optionally) compares
+the result with expected values. You can specify a custom DNS server.
 
-### Поля `config`
+### `config` fields
 
-| Поле | Тип | По умолчанию | Описание |
+| Field | Type | Default | Description |
 |---|---|---|---|
-| `domain` | string | — (**обязательно**) | Домен для резолва |
+| `domain` | string | — (**required**) | Domain to resolve |
 | `record_type` | string | `A` | `A`, `AAAA`, `CNAME`, `MX`, `TXT`, `NS` |
-| `dns_server` | string | системный | Кастомный DNS-сервер (`8.8.8.8` или `8.8.8.8:53`) |
-| `expected_ips` | []string | — | Ожидаемые IP (для A/AAAA) |
-| `expect_values` | []string | — | Ожидаемые значения (хосты MX/NS/CNAME, строки TXT) |
+| `dns_server` | string | system | Custom DNS server (`8.8.8.8` or `8.8.8.8:53`) |
+| `expected_ips` | []string | — | Expected IPs (for A/AAAA) |
+| `expect_values` | []string | — | Expected values (MX/NS/CNAME hosts, TXT strings) |
 
-`expected_ips` и `expect_values` объединяются: если заданы, **каждое** значение
-должно присутствовать в ответе (без учёта регистра, толерантно к завершающей точке;
-для MX достаточно совпадения хоста).
+`expected_ips` and `expect_values` are combined: if set, **every** value
+must be present in the response (case-insensitive, tolerant of a trailing dot;
+for MX a host match is enough).
 
-### Логика результата
-- `success` — резолв успешен и (если заданы) все ожидаемые значения найдены.
-- `failure` — ошибка резолва (`no such host`), нет записей, либо ожидаемое значение отсутствует.
-- Метадата: `domain`, `record_type`, `records` (дедуплицированы, отсортированы), `record_count`, при наличии — `dns_server`.
+### Result logic
+- `success` — resolution succeeded and (if set) all expected values were found.
+- `failure` — resolution error (`no such host`), no records, or an expected value is missing.
+- Metadata: `domain`, `record_type`, `records` (deduplicated, sorted), `record_count`, and if present — `dns_server`.
 
-### Пример (API)
+### Example (API)
 ```bash
 curl -X POST http://localhost:8080/api/v1/targets -H 'Content-Type: application/json' -d '{
   "id": "dns-example",
@@ -160,29 +160,29 @@ curl -X POST http://localhost:8080/api/v1/targets -H 'Content-Type: application/
 }'
 ```
 
-Чтобы проверять конкретные значения, добавьте `expect_values` (или `expected_ips`)
-с актуальными для вашего домена записями, напр. `"expect_values": ["mx1.example.com"]`
-для `record_type: "MX"`.
+To check specific values, add `expect_values` (or `expected_ips`)
+with the records relevant to your domain, e.g. `"expect_values": ["mx1.example.com"]`
+for `record_type: "MX"`.
 
-### В UI
-Тип **DNS** → поля **Domain**, **Record Type**, **DNS Server** (опц.),
-**Expected records** (через запятую, опц.).
+### In the UI
+Type **DNS** → **Domain**, **Record Type**, **DNS Server** (opt.),
+**Expected records** (comma-separated, opt.) fields.
 
 ---
 
 ## Data Retention
 
-Старые данные автоматически удаляются фоновой задачей, чтобы БД не разрасталась.
-Настраивается в секции `retention` конфигурации:
+Old data is automatically deleted by a background task so that the database does not grow unbounded.
+Configured in the `retention` section of the configuration:
 
 ```yaml
 retention:
-  check_results: 720h    # хранить результаты проверок 30 дней
-  incidents: 2160h       # хранить resolved-инциденты 90 дней
-  cleanup_interval: 24h  # как часто запускать очистку
+  check_results: 720h    # keep check results for 30 days
+  incidents: 2160h       # keep resolved incidents for 90 days
+  cleanup_interval: 24h  # how often to run cleanup
 ```
 
-- Очистка запускается один раз сразу при старте, затем каждые `cleanup_interval`.
-- Значение `0` для `check_results`/`incidents` = «хранить вечно» (очистка пропускается).
-- `cleanup_interval` ≤ `0` полностью отключает фоновую задачу.
-- Удаляются только **resolved**-инциденты; активные остаются.
+- Cleanup runs once immediately at startup, then every `cleanup_interval`.
+- A value of `0` for `check_results`/`incidents` = "keep forever" (cleanup is skipped).
+- `cleanup_interval` ≤ `0` fully disables the background task.
+- Only **resolved** incidents are deleted; active ones remain.

@@ -1,124 +1,182 @@
 # Backlog
 
-Отложенные задачи (не в активной работе). Приоритетный список «что дальше» — в
+Deferred tasks (not in active work). The prioritized "what's next" list lives in
 [`implementation-progress.md`](implementation-progress.md) → Next Steps.
 
 ---
 
 ## ICMP / Ping checker
 
-**Суть:** проверка живости хоста через ICMP Echo (как `ping`): доступность,
-RTT (round-trip time), packet loss. Самая низкоуровневая проверка — без портов и
-приложений. Полезно для роутеров/свитчей/серверов без открытого HTTP/TCP-сервиса.
+**What it is:** host liveness via ICMP Echo (like `ping`): reachability, RTT
+(round-trip time), packet loss. The lowest-level check — no ports, no
+applications. Useful for routers/switches/servers that expose no HTTP/TCP service.
 
-**Почему отложено — требует привилегий.** Raw ICMP-сокеты нужны root / Linux
-capability `CAP_NET_RAW`, либо unprivileged-режим через UDP-сокет (`ip4:icmp`) с
-разрешением в sysctl `net.ipv4.ping_group_range`. В Docker — `cap_add: [NET_RAW]`
-или `sysctls`. То есть, в отличие от TCP/DNS, «просто заработает» не везде —
-нужны правки деплоя.
+**Why deferred — requires privileges.** Raw ICMP sockets need root / the Linux
+`CAP_NET_RAW` capability, or unprivileged mode via a UDP socket (`ip4:icmp`) with
+the `net.ipv4.ping_group_range` sysctl allowed. In Docker that means
+`cap_add: [NET_RAW]` or `sysctls`. So unlike TCP/DNS it won't "just work"
+everywhere — it needs deployment changes.
 
-**Как реализовать (тот же паттерн, что TCP/DNS):**
-- `internal/checker/icmp.go`, зарегистрировать в `NewDefaultRegistry()`.
-- `ICMPConfig` уже есть в domain: `host`, `packet_count`, `max_rtt_ms`.
-- Библиотека: `github.com/prometheus-community/pro-bing` (умеет privileged и
-  unprivileged режимы).
-- Результат: `success` если потерь нет и RTT в норме; `warning` при потерях или
-  превышении `max_rtt_ms`; `failure` если хост не ответил.
-- Добавить ICMP-поля в type-aware форму targets (`web/static/index.html`).
-- Документировать в `docs/checkers.md` требование `NET_RAW`/sysctl + пример Docker.
+**How to implement (same pattern as TCP/DNS):**
+- `internal/checker/icmp.go`, register it in `NewDefaultRegistry()`.
+- `ICMPConfig` already exists in domain: `host`, `packet_count`, `max_rtt_ms`.
+- Library: `github.com/prometheus-community/pro-bing` (supports both privileged
+  and unprivileged modes).
+- Result: `success` if no loss and RTT within bounds; `warning` on loss or
+  exceeding `max_rtt_ms`; `failure` if the host doesn't respond.
+- Add ICMP fields to the type-aware target form (`web/static/index.html`).
+- Document the `NET_RAW`/sysctl requirement + a Docker example in `docs/checkers.md`.
 
 ---
 
-## Lint cleanup → сделать lint блокирующим
+## Lint cleanup → make lint blocking
 
-**Сейчас:** `lint` job в CI помечен `continue-on-error: true` (advisory) — репортит,
-но не валит CI. Причина: строгий `.golangci.yml` выдаёт **~201 finding** на код,
-который раньше не линтился.
+**Current state:** the `lint` job in CI is marked `continue-on-error: true`
+(advisory) — it reports but does not fail CI. Reason: the strict `.golangci.yml`
+surfaces **~201 findings** against a codebase that was never linted before.
 
-**Разбивка findings (v1.64.8):** revive 79 (в основном «exported … should have
-comment»), errcheck 34, gocritic 27, errorlint 7, unused 6, govet 6, unparam 5,
+**Findings breakdown (v1.64.8):** revive 79 (mostly "exported … should have
+comment"), errcheck 34, gocritic 27, errorlint 7, unused 6, govet 6, unparam 5,
 gosec 4, goconst 4, gosimple 3, misspell 2, gocyclo 2, contextcheck 2.
 
-**Как закрыть (на выбор):**
-- *Постепенно по категориям:* сначала потенциально-реальные (errcheck, unused,
-  gosec, govet, contextcheck), отложить чистую стилистику (revive `exported`,
-  gocritic `opinionated/experimental`). По мере зачистки — снять `continue-on-error`.
-- *Смягчить конфиг:* убрать самые педантичные правила (revive `exported`,
-  gocritic-теги `opinionated`/`experimental`) → останется ~два десятка, их добить и
-  сделать lint блокирующим.
+**How to close (pick one):**
+- *Incrementally, by category:* first the potentially-real ones (errcheck,
+  unused, gosec, govet, contextcheck), defer pure style (revive `exported`,
+  gocritic `opinionated/experimental`). Drop `continue-on-error` as you clean up.
+- *Soften the config:* remove the most pedantic rules (revive `exported`,
+  gocritic `opinionated`/`experimental` tags) → ~two dozen left; fix those and
+  make lint blocking.
 
-**Файлы:** `.golangci.yml`, `.github/workflows/test.yml` (флаг `continue-on-error`).
+**Files:** `.golangci.yml`, `.github/workflows/test.yml` (the `continue-on-error`
+flag).
 
 ---
 
-## Worker pool в scheduler (+ jitter / backoff)
+## Worker pool in the scheduler (+ jitter / backoff)
 
-**Сейчас:** `internal/scheduler/scheduler.go` заводит **горутину-на-таргет** с
-собственным тикером; глобального ограничения на число одновременных проверок нет.
-Для десятков-сотен таргетов это нормально.
+**Current state:** `internal/scheduler/scheduler.go` spawns a **goroutine per
+target** with its own ticker; there is no global cap on concurrent checks. Fine
+for tens–hundreds of targets.
 
-**Зачем:** при сотнях-тысячах таргетов или совпадении тиков может стартовать
-много проверок разом → всплеск по сети/CPU/FD и нагрузке на запись в SQLite.
-Пул отвязывает «сколько таргетов» от «сколько проверок бежит одновременно».
+**Why:** with hundreds–thousands of targets, or when ticks coincide, many checks
+can start at once → spikes in network/CPU/FD usage and SQLite write load. A pool
+decouples "how many targets" from "how many checks run at once".
 
-**Как реализовать:**
-- Тикеры кладут задачу «проверь X» в канал-очередь; N воркеров разбирают и
-  выполняют (конфигурируемое число воркеров).
-- Добавить **jitter** при старте (размазать первые проверки во времени — против
-  thundering herd) и **backoff** при сериях ошибок (увеличивать интервал, возврат
-  к норме при success). См. план, Фаза 5.1–5.2.
-- Опционально метрики: queue depth, worker utilization (см. Prometheus ниже).
+**How to implement:**
+- Tickers enqueue a "check X" job onto a channel; N workers pull and execute
+  (configurable worker count).
+- Add **jitter** at startup (spread the first checks over time — against the
+  thundering herd) and **backoff** on error streaks (grow the interval, return to
+  normal on success). See the plan, Phase 5.1–5.2.
+- Optional metrics: queue depth, worker utilization (see Prometheus below).
 
 ---
 
 ## Prometheus `/metrics`
 
-**Зачем:** интеграция с существующим стеком Prometheus + Grafana + Alertmanager.
-Брать **только если такой стек есть/планируется** — иначе встроенный дашборд (SSE,
-графики), статистика (uptime/response) и нотификаторы уже закрывают потребности.
+**Why:** integration with an existing Prometheus + Grafana + Alertmanager stack.
+Adopt it **only if you have/plan such a stack** — otherwise the built-in
+dashboard (SSE, charts), stats (uptime/response) and notifiers already cover the
+need.
 
-**Два среза:**
-- *Про сам монитор:* активные таргеты, queue depth, длительность проверок
-  P50/P95/P99, error rate, goroutines, пул соединений к БД (Фаза 9.1).
-- *Данные мониторинга как метрики:* `health_target_up{target=…}`,
-  `health_target_response_ms{…}` → дашборды/алерты в Grafana/Alertmanager.
+**Two angles:**
+- *About the monitor itself:* active targets, queue depth, check duration
+  P50/P95/P99, error rate, goroutines, DB connection pool (Phase 9.1).
+- *Monitoring data as metrics:* `health_target_up{target=…}`,
+  `health_target_response_ms{…}` → dashboards/alerts in Grafana/Alertmanager.
 
-**Как:** `github.com/prometheus/client_golang`, отдать `/metrics` (обычно вне
-basic-auth), инкрементить в тех же точках scheduler/alert-manager, куда уже
-вешаются SSE-события.
+**How:** `github.com/prometheus/client_golang`, serve `/metrics` (usually outside
+basic auth), increment at the same scheduler/alert-manager points that already
+emit SSE events.
 
 ---
 
-## CLI: `validate` и `backup`/`restore`
+## CLI: `validate` and `backup`/`restore`
 
-**Сейчас:** бинарь принимает только `--config` и `--version` (flag-based).
+**Current state:** the binary accepts only `--config` and `--version`
+(flag-based).
 
-- **`validate`** (Фаза 10.2) — проверить конфиг без запуска: валидный YAML,
-  обязательные поля, корректные интервалы/таймауты, путь к БД. `validate --config
-  config.yaml` → exit 0/1. Дёшево, удобно в CI/перед деплоем.
-- **`backup` / `restore`** (Фаза 10.4) — корректный бэкап SQLite «на лету»
-  (`VACUUM INTO` / Online Backup API, не `cp`). Польза средняя — часто хватает
-  снапшота тома/файла.
+- **`validate`** (Phase 10.2) — validate config without starting: valid YAML,
+  required fields, sane intervals/timeouts, DB path. `validate --config
+  config.yaml` → exit 0/1. Cheap, handy in CI / before deploy.
+- **`backup` / `restore`** (Phase 10.4) — a correct live SQLite backup
+  (`VACUUM INTO` / the Online Backup API, not `cp`). Medium value — a volume/file
+  snapshot is often enough.
 
-Для подкоманд — либо `cobra`/`urfave/cli` (рефактор `main.go`), либо ручной разбор
+For subcommands — either `cobra`/`urfave/cli` (a `main.go` refactor) or hand-parse
 `os.Args[1]`.
 
 ---
 
-## CI/CD — расширения
+## Deploying to a server via GHCR
 
-- **Multi-arch Docker** (arm64): сейчас `Dockerfile` хардкодит `GOARCH=amd64` +
-  CGO; для arm64 нужен cross-toolchain или buildx с QEMU и правки Dockerfile.
-- **Security-скан:** CodeQL и/или `gosec` отдельным job в CI.
-- **`release.yml`:** при желании — доп. бинари (darwin/arm64) — но CGO+SQLite
-  усложняет кросс-сборку (нужны cross-CC per target).
+**Goal:** the last mile — tag → CI pushes the image to GHCR → run it on the prod
+server. Today `docker-compose.prod.yml` **builds the image locally** (`build:`);
+switch it to **pull** from the registry.
+
+**1. One-time: edit `docker-compose.prod.yml`** — replace the build block with an
+image reference:
+```yaml
+  health-monitor:
+    image: ghcr.io/kozyrevandrey/health-monitor:${TAG:-latest}
+    container_name: health-monitor-prod
+    # build: ...  ← remove entirely
+```
+Add `TAG=v1.0.0` to `.env`. Prefer pinning a concrete version in prod over
+`latest` (reproducible, explicit about what's deployed).
+
+**2. One-time: log in to GHCR on the server**
+- If the package is **public** (toggle in the package settings on GitHub) — no
+  login needed, `pull` works anonymously.
+- If **private**:
+  ```bash
+  echo $GHCR_PAT | docker login ghcr.io -u KozyrevAndrey --password-stdin
+  ```
+  where `GHCR_PAT` is a Personal Access Token (classic) with the **`read:packages`**
+  scope (read is enough for pull).
+
+**3. Deploy (each release)** on the server, in the compose dir:
+```bash
+# (if pinning a version) update TAG in .env, e.g. TAG=v1.0.1
+docker compose -f docker-compose.prod.yml pull
+docker compose -f docker-compose.prod.yml up -d
+docker image prune -f   # clean up old layers
+```
+The `health-monitor-data` volume (DB) and `./secrets` are preserved.
+
+**Full release cycle:**
+```
+git tag v1.0.1 && git push origin v1.0.1
+   → release.yml builds & pushes ghcr.io/.../health-monitor:1.0.1 + :latest
+   → on the server: TAG=v1.0.1, docker compose pull && up -d
+```
+
+**Optional automation:**
+- **Watchtower** — a container that watches GHCR and auto-updates the service on
+  a new image (give it GHCR creds for a private package). Simple, but "magic" and
+  tied to `latest`.
+- **CI auto-deploy over SSH** — a `release.yml` job that SSHes into the server and
+  runs `pull && up -d` (needs secrets: SSH key, host). Controlled, but opens CI
+  access to the server.
+- **Manual pull** (the flow above) — simplest and safest; recommended to start.
 
 ---
 
-## Долгосрочное (план v1.1 / 2.0)
+## CI/CD — extensions
 
-- PostgreSQL adapter (абстракция storage уже на интерфейсах).
-- Alert routing / severity-based / quiet hours / escalation (Фаза 6.3).
+- **Multi-arch Docker** (arm64): the `Dockerfile` currently hardcodes
+  `GOARCH=amd64` + CGO; arm64 needs a cross-toolchain or buildx with QEMU plus
+  Dockerfile changes.
+- **Security scan:** CodeQL and/or `gosec` as a separate CI job.
+- **`release.yml`:** optionally extra binaries (darwin/arm64) — but CGO+SQLite
+  complicates cross-compilation (cross-CC per target).
+
+---
+
+## Long-term (plan v1.1 / 2.0)
+
+- PostgreSQL adapter (the storage abstraction is already interface-based).
+- Alert routing / severity-based / quiet hours / escalation (Phase 6.3).
 - Multi-user + RBAC, API tokens / JWT.
-- Maintenance windows, публичная status page, distributed monitoring.
-- Data retention: агрегация старых данных (rollup) вместо простого удаления.
+- Maintenance windows, public status page, distributed monitoring.
+- Data retention: rolling up old data (aggregation) instead of plain deletion.

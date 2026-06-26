@@ -1,72 +1,72 @@
-# Health Monitor - План разработки
+# Health Monitor - Development Plan
 
-**Версия:** 1.0  
-**Дата:** Декабрь 2024  
-**Цель:** Легковесная, расширяемая система мониторинга доменов, хостов и health endpoints на Go
-
----
-
-## Оглавление
-
-1. [Обзор проекта](#обзор-проекта)
-2. [Технологический стек](#технологический-стек)
-3. [Архитектурные принципы](#архитектурные-принципы)
-4. [Фазы разработки](#фазы-разработки)
-5. [Структура проекта](#структура-проекта)
-6. [Roadmap и приоритеты](#roadmap-и-приоритеты)
-7. [Deployment и инфраструктура](#deployment-и-инфраструктура)
+**Version:** 1.0  
+**Date:** December 2024  
+**Goal:** A lightweight, extensible system for monitoring domains, hosts, and health endpoints, written in Go
 
 ---
 
-## Обзор проекта
+## Table of Contents
 
-### Назначение
-Self-hosted система мониторинга для отслеживания доступности и производительности веб-сервисов, API endpoints и сетевых ресурсов.
+1. [Project Overview](#project-overview)
+2. [Technology Stack](#technology-stack)
+3. [Architectural Principles](#architectural-principles)
+4. [Development Phases](#development-phases)
+5. [Project Structure](#project-structure)
+6. [Roadmap and Priorities](#roadmap-and-priorities)
+7. [Deployment and Infrastructure](#deployment-and-infrastructure)
 
-### Ключевые особенности
-- ✅ Легковесность (один Go бинарник)
-- ✅ Расширяемая архитектура
-- ✅ Поддержка множества типов проверок
-- ✅ Гибкая система уведомлений
-- ✅ Простой веб-интерфейс
-- ✅ Real-time обновления
+---
+
+## Project Overview
+
+### Purpose
+A self-hosted monitoring system for tracking the availability and performance of web services, API endpoints, and network resources.
+
+### Key Features
+- ✅ Lightweight (a single Go binary)
+- ✅ Extensible architecture
+- ✅ Support for many types of checks
+- ✅ Flexible notification system
+- ✅ Simple web interface
+- ✅ Real-time updates
 - ✅ Low resource footprint
 
-### Целевое использование
-- Мониторинг production сервисов
-- Проверка доступности API
-- Отслеживание SSL сертификатов
-- Мониторинг внутренних сервисов
+### Target Use Cases
+- Monitoring production services
+- Checking API availability
+- Tracking SSL certificates
+- Monitoring internal services
 - SLA tracking
 
 ---
 
-## Технологический стек
+## Technology Stack
 
 ### Backend
-- **Язык:** Go 1.21+
-- **HTTP Router:** chi/gin (выбрать на этапе реализации)
-- **БД:** SQLite (с возможностью миграции на PostgreSQL)
+- **Language:** Go 1.21+
+- **HTTP Router:** chi/gin (to be chosen during implementation)
+- **Database:** SQLite (with the option to migrate to PostgreSQL)
 - **ORM:** GORM
-- **Scheduler:** robfig/cron или custom ticker-based
-- **Логирование:** zerolog/zap
+- **Scheduler:** robfig/cron or a custom ticker-based one
+- **Logging:** zerolog/zap
 
 ### Frontend
 - **Framework:** HTMX + Alpine.js
-- **Стили:** Pico.css / Water.css
+- **Styles:** Pico.css / Water.css
 - **Real-time:** Server-Sent Events (SSE)
-- **Графики:** Chart.js (опционально)
+- **Charts:** Chart.js (optional)
 
-### Инфраструктура
-- **Контейнеризация:** Docker
-- **Оркестрация:** Docker Compose (Kubernetes опционально)
+### Infrastructure
+- **Containerization:** Docker
+- **Orchestration:** Docker Compose (Kubernetes optional)
 - **CI/CD:** GitHub Actions
 
 ---
 
-## Архитектурные принципы
+## Architectural Principles
 
-### 1. Чистая архитектура (Clean Architecture)
+### 1. Clean Architecture
 
 ```
 ┌─────────────────────────────────────┐
@@ -91,15 +91,15 @@ Self-hosted система мониторинга для отслеживани�
 ```
 
 ### 2. Dependency Injection
-- Все зависимости передаются через конструкторы
-- Использование интерфейсов вместо конкретных типов
-- Легкое тестирование через моки
+- All dependencies are passed through constructors
+- Use of interfaces instead of concrete types
+- Easy testing via mocks
 
 ### 3. Interface Segregation
-Ключевые интерфейсы:
+Key interfaces:
 
 ```go
-// Примеры интерфейсов (не код, а концепция)
+// Examples of interfaces (concept, not actual code)
 
 type Checker interface {
     Check(ctx context.Context, target Target) CheckResult
@@ -127,44 +127,44 @@ type Scheduler interface {
 ```
 
 ### 4. Extensibility Points
-- **Checker Registry:** Регистрация новых типов проверок
-- **Notifier Registry:** Добавление каналов уведомлений
-- **Storage Adapters:** Поддержка разных БД
-- **Plugin System:** (опционально) Загрузка внешних плагинов
+- **Checker Registry:** Registering new types of checks
+- **Notifier Registry:** Adding notification channels
+- **Storage Adapters:** Support for different databases
+- **Plugin System:** (optional) Loading external plugins
 
 ---
 
-## Фазы разработки
+## Development Phases
 
-## Фаза 1: Проектирование архитектуры
+## Phase 1: Architecture Design
 
-**Цель:** Спроектировать расширяемую и поддерживаемую архитектуру
+**Goal:** Design an extensible and maintainable architecture
 
-### 1.1 Определение интерфейсов
+### 1.1 Defining Interfaces
 
-**Задачи:**
-- [ ] Определить интерфейс `Checker` с методами:
+**Tasks:**
+- [ ] Define the `Checker` interface with methods:
   - `Check(ctx, target) -> result`
   - `Type() -> string`
   - `Validate(config) -> error`
-- [ ] Определить интерфейс `Storage`:
-  - CRUD для targets
-  - Сохранение результатов проверок
-  - Получение истории и статистики
-- [ ] Определить интерфейс `Notifier`:
+- [ ] Define the `Storage` interface:
+  - CRUD for targets
+  - Saving check results
+  - Retrieving history and statistics
+- [ ] Define the `Notifier` interface:
   - `Notify(ctx, alert) -> error`
   - `Type() -> string`
-- [ ] Определить интерфейс `Scheduler`:
-  - Управление задачами
-  - Lifecycle методы (Start/Stop)
+- [ ] Define the `Scheduler` interface:
+  - Task management
+  - Lifecycle methods (Start/Stop)
 
-**Результат:** Документ с описанием всех интерфейсов
+**Outcome:** A document describing all interfaces
 
-### 1.2 Структура конфигурации
+### 1.2 Configuration Structure
 
-**Задачи:**
-- [ ] Спроектировать YAML схему конфигурации
-- [ ] Определить структуру Target:
+**Tasks:**
+- [ ] Design the YAML configuration schema
+- [ ] Define the Target structure:
   ```yaml
   targets:
     - id: "api-production"
@@ -182,42 +182,42 @@ type Scheduler interface {
         - type: "webhook"
           url: "https://hooks.slack.com/..."
   ```
-- [ ] Определить глобальные настройки
-- [ ] Спроектировать retention policies
+- [ ] Define global settings
+- [ ] Design retention policies
 
-**Результат:** Примеры конфигурационных файлов
+**Outcome:** Example configuration files
 
-### 1.3 Модели данных
+### 1.3 Data Models
 
-**Задачи:**
-- [ ] Описать структуру `Target`
-- [ ] Описать структуру `CheckResult`:
+**Tasks:**
+- [ ] Describe the `Target` structure
+- [ ] Describe the `CheckResult` structure:
   - Timestamp
   - Success/Failure
   - Response time
   - Status code
   - Error message
   - Metadata (headers, body snippet)
-- [ ] Описать структуру `Alert`
-- [ ] Описать структуру `Incident`:
-  - Группировка последовательных failures
+- [ ] Describe the `Alert` structure
+- [ ] Describe the `Incident` structure:
+  - Grouping of consecutive failures
   - Start/End time
   - Status (ongoing/resolved)
 
-**Результат:** Domain модели в виде Go structs (концептуально)
+**Outcome:** Domain models as Go structs (conceptually)
 
 ---
 
-## Фаза 2: Базовая инфраструктура
+## Phase 2: Basic Infrastructure
 
-**Цель:** Настроить проект и базовую инфраструктуру
+**Goal:** Set up the project and the basic infrastructure
 
-### 2.1 Настройка проекта
+### 2.1 Project Setup
 
-**Задачи:**
-- [ ] Инициализировать Go модуль
+**Tasks:**
+- [ ] Initialize the Go module
   - `go mod init github.com/username/health-monitor`
-- [ ] Создать структуру директорий:
+- [ ] Create the directory structure:
   ```
   health-monitor/
   ├── cmd/
@@ -245,68 +245,68 @@ type Scheduler interface {
   ├── docker-compose.yml
   └── README.md
   ```
-- [ ] Настроить golangci-lint
-- [ ] Создать Makefile с командами:
+- [ ] Configure golangci-lint
+- [ ] Create a Makefile with commands:
   - `make build`
   - `make test`
   - `make lint`
   - `make run`
   - `make docker-build`
 
-**Результат:** Работающий скелет проекта
+**Outcome:** A working project skeleton
 
-### 2.2 Система конфигурации
+### 2.2 Configuration System
 
-**Задачи:**
-- [ ] Выбрать библиотеку (viper / cleanenv / custom)
-- [ ] Реализовать парсинг YAML
-- [ ] Добавить валидацию конфигурации
-- [ ] Поддержка env переменных для чувствительных данных
-- [ ] Hot-reload конфига (опционально для v2)
+**Tasks:**
+- [ ] Choose a library (viper / cleanenv / custom)
+- [ ] Implement YAML parsing
+- [ ] Add configuration validation
+- [ ] Support env variables for sensitive data
+- [ ] Hot-reload of the config (optional for v2)
 
-**Результат:** Рабочая загрузка конфигурации
+**Outcome:** Working configuration loading
 
-### 2.3 Логирование
+### 2.3 Logging
 
-**Задачи:**
-- [ ] Выбрать библиотеку (zerolog рекомендуется)
-- [ ] Настроить structured logging
-- [ ] Конфигурируемые уровни логов
-- [ ] Логирование в файл + stdout
-- [ ] Ротация логов (если в файл)
+**Tasks:**
+- [ ] Choose a library (zerolog recommended)
+- [ ] Set up structured logging
+- [ ] Configurable log levels
+- [ ] Logging to a file + stdout
+- [ ] Log rotation (if logging to a file)
 
-**Результат:** Централизованное логирование
+**Outcome:** Centralized logging
 
 ---
 
-## Фаза 3: Storage слой
+## Phase 3: Storage Layer
 
-**Цель:** Реализовать персистентность данных
+**Goal:** Implement data persistence
 
-### 3.1 Интерфейс репозитория
+### 3.1 Repository Interface
 
-**Задачи:**
-- [ ] Определить интерфейс `TargetRepository`:
+**Tasks:**
+- [ ] Define the `TargetRepository` interface:
   - `Create(target) error`
   - `Get(id) (Target, error)`
   - `List() ([]Target, error)`
   - `Update(target) error`
   - `Delete(id) error`
-- [ ] Определить интерфейс `CheckResultRepository`:
+- [ ] Define the `CheckResultRepository` interface:
   - `Save(result) error`
   - `GetHistory(targetID, limit, offset) ([]Result, error)`
   - `GetLatest(targetID) (Result, error)`
   - `GetStats(targetID, from, to) (Stats, error)`
-- [ ] Определить интерфейс `IncidentRepository`
+- [ ] Define the `IncidentRepository` interface
 
-**Результат:** Описание всех методов репозиториев
+**Outcome:** A description of all repository methods
 
-### 3.2 SQLite имплементация
+### 3.2 SQLite Implementation
 
-**Задачи:**
-- [ ] Спроектировать схему БД:
+**Tasks:**
+- [ ] Design the database schema:
   ```sql
-  -- Пример структуры
+  -- Example structure
   CREATE TABLE targets (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
@@ -331,563 +331,563 @@ type Scheduler interface {
   CREATE INDEX idx_check_results_target_time 
       ON check_results(target_id, checked_at DESC);
   ```
-- [ ] Настроить миграции (golang-migrate или goose)
-- [ ] Реализовать все методы репозитория
-- [ ] Добавить индексы для производительности
+- [ ] Set up migrations (golang-migrate or goose)
+- [ ] Implement all repository methods
+- [ ] Add indexes for performance
 - [ ] Connection pooling
-- [ ] Транзакции где необходимо
+- [ ] Transactions where necessary
 
-**Результат:** Рабочий SQLite storage
+**Outcome:** Working SQLite storage
 
-### 3.3 Подготовка к масштабированию
+### 3.3 Preparing for Scaling
 
-**Задачи:**
-- [ ] Абстрагировать SQL-специфичный код
-- [ ] Подготовить интерфейс для PostgreSQL
-- [ ] Graceful shutdown с flush данных
-- [ ] Автоматическая очистка старых данных (retention)
+**Tasks:**
+- [ ] Abstract away SQL-specific code
+- [ ] Prepare an interface for PostgreSQL
+- [ ] Graceful shutdown with data flush
+- [ ] Automatic cleanup of old data (retention)
 
-**Результат:** Возможность переключения БД
+**Outcome:** The ability to switch databases
 
 ---
 
-## Фаза 4: Checker система
+## Phase 4: Checker System
 
-**Цель:** Реализовать различные типы проверок
+**Goal:** Implement various types of checks
 
-### 4.1 Базовый интерфейс
+### 4.1 Base Interface
 
-**Задачи:**
-- [ ] Реализовать базовый интерфейс `Checker`
-- [ ] Добавить timeout handling
-- [ ] Реализовать context propagation
-- [ ] Опциональная retry логика с backoff
-- [ ] Метрики производительности checkers
+**Tasks:**
+- [ ] Implement the base `Checker` interface
+- [ ] Add timeout handling
+- [ ] Implement context propagation
+- [ ] Optional retry logic with backoff
+- [ ] Performance metrics for checkers
 
-**Результат:** Базовый механизм проверок
+**Outcome:** A base mechanism for checks
 
-### 4.2 HTTP Checker (приоритет 1)
+### 4.2 HTTP Checker (priority 1)
 
-**Задачи:**
-- [ ] Проверка HTTP status code
-- [ ] Измерение response time
-- [ ] Валидация response body:
-  - Проверка наличия строки
+**Tasks:**
+- [ ] Check the HTTP status code
+- [ ] Measure response time
+- [ ] Validate the response body:
+  - Check for the presence of a string
   - Regex matching
   - JSON path validation
-- [ ] Проверка headers
-- [ ] Проверка SSL сертификатов:
-  - Валидность
-  - Срок истечения (предупреждение за N дней)
-- [ ] Follow redirects (конфигурируемо)
-- [ ] Custom HTTP методы (GET, POST, HEAD)
-- [ ] Custom headers и authentication
+- [ ] Check headers
+- [ ] Check SSL certificates:
+  - Validity
+  - Expiration date (warning N days in advance)
+- [ ] Follow redirects (configurable)
+- [ ] Custom HTTP methods (GET, POST, HEAD)
+- [ ] Custom headers and authentication
 
-**Результат:** Полнофункциональный HTTP checker
+**Outcome:** A fully featured HTTP checker
 
-### 4.3 TCP Checker (приоритет 2)
+### 4.3 TCP Checker (priority 2)
 
-**Задачи:**
-- [ ] Проверка доступности порта
-- [ ] Измерение connection time
-- [ ] Опциональная отправка/получение данных
-- [ ] Поддержка TLS
+**Tasks:**
+- [ ] Check port availability
+- [ ] Measure connection time
+- [ ] Optional sending/receiving of data
+- [ ] TLS support
 
-**Результат:** TCP port checker
+**Outcome:** A TCP port checker
 
-### 4.4 DNS Checker (приоритет 3)
+### 4.4 DNS Checker (priority 3)
 
-**Задачи:**
-- [ ] Резолвинг A/AAAA записей
-- [ ] Проверка MX, TXT, CNAME записей
-- [ ] Измерение DNS resolution time
-- [ ] Проверка против ожидаемых значений
+**Tasks:**
+- [ ] Resolving A/AAAA records
+- [ ] Checking MX, TXT, CNAME records
+- [ ] Measuring DNS resolution time
+- [ ] Checking against expected values
 
-**Результат:** DNS checker
+**Outcome:** A DNS checker
 
-### 4.5 ICMP/Ping Checker (приоритет 4)
+### 4.5 ICMP/Ping Checker (priority 4)
 
-**Задачи:**
+**Tasks:**
 - [ ] ICMP ping
-- [ ] Измерение RTT
+- [ ] Measuring RTT
 - [ ] Packet loss detection
-- [ ] Требует привилегий - документировать
+- [ ] Requires privileges - document this
 
-**Результат:** Ping checker
+**Outcome:** A ping checker
 
-### 4.6 Custom Script Checker (опционально)
+### 4.6 Custom Script Checker (optional)
 
-**Задачи:**
-- [ ] Выполнение внешних скриптов
-- [ ] Парсинг exit code
-- [ ] Timeout для скриптов
-- [ ] Безопасность (sandboxing)
+**Tasks:**
+- [ ] Executing external scripts
+- [ ] Parsing the exit code
+- [ ] Timeout for scripts
+- [ ] Security (sandboxing)
 
-**Результат:** Расширение через скрипты
+**Outcome:** Extension via scripts
 
 ### 4.7 Checker Registry
 
-**Задачи:**
-- [ ] Factory pattern для создания checkers
-- [ ] Регистрация новых типов
-- [ ] Валидация конфигурации по типу
+**Tasks:**
+- [ ] Factory pattern for creating checkers
+- [ ] Registering new types
+- [ ] Validating configuration by type
 
-**Результат:** Легко расширяемая система
+**Outcome:** An easily extensible system
 
 ---
 
-## Фаза 5: Scheduler
+## Phase 5: Scheduler
 
-**Цель:** Планирование и выполнение проверок
+**Goal:** Scheduling and executing checks
 
-### 5.1 Менеджер задач
+### 5.1 Task Manager
 
-**Задачи:**
-- [ ] Ticker-based scheduler для каждого target
-- [ ] Worker pool для параллельного выполнения:
-  - Конфигурируемое количество workers
-  - Queue для задач
+**Tasks:**
+- [ ] Ticker-based scheduler for each target
+- [ ] Worker pool for parallel execution:
+  - Configurable number of workers
+  - Queue for tasks
   - Graceful worker shutdown
-- [ ] Управление lifecycle:
-  - `Start()` - запуск планировщика
-  - `Stop()` - graceful остановка
-  - `AddTarget()` - добавление нового target
-  - `RemoveTarget()` - удаление target
-  - `UpdateTarget()` - обновление интервала
-- [ ] Context propagation для отмены
+- [ ] Lifecycle management:
+  - `Start()` - start the scheduler
+  - `Stop()` - graceful stop
+  - `AddTarget()` - add a new target
+  - `RemoveTarget()` - remove a target
+  - `UpdateTarget()` - update the interval
+- [ ] Context propagation for cancellation
 
-**Результат:** Базовый scheduler
+**Outcome:** A basic scheduler
 
-### 5.2 Оптимизации
+### 5.2 Optimizations
 
-**Задачи:**
-- [ ] Jitter для избежания thundering herd:
-  - Случайная задержка при старте
-  - Распределение проверок во времени
-- [ ] Backoff при последовательных failures:
-  - Увеличение интервала при ошибках
-  - Возврат к нормальному интервалу при success
-- [ ] Приоритизация проверок:
-  - Critical targets проверяются чаще
-  - Lower priority при высокой нагрузке
-- [ ] Health check самого scheduler
+**Tasks:**
+- [ ] Jitter to avoid thundering herd:
+  - Random delay at startup
+  - Distributing checks over time
+- [ ] Backoff on consecutive failures:
+  - Increasing the interval on errors
+  - Returning to the normal interval on success
+- [ ] Check prioritization:
+  - Critical targets are checked more frequently
+  - Lower priority under high load
+- [ ] Health check of the scheduler itself
 
-**Результат:** Оптимизированный scheduler
+**Outcome:** An optimized scheduler
 
-### 5.3 Метрики scheduler
+### 5.3 Scheduler Metrics
 
-**Задачи:**
-- [ ] Количество активных задач
+**Tasks:**
+- [ ] Number of active tasks
 - [ ] Queue depth
 - [ ] Worker utilization
 - [ ] Avg check duration
 
-**Результат:** Наблюдаемость scheduler
+**Outcome:** Scheduler observability
 
 ---
 
-## Фаза 6: Alerting система
+## Phase 6: Alerting System
 
-**Цель:** Уведомления о проблемах
+**Goal:** Notifications about problems
 
 ### 6.1 Alert Manager
 
-**Задачи:**
-- [ ] State machine для алертов:
+**Tasks:**
+- [ ] State machine for alerts:
   ```
   OK → WARNING → CRITICAL → RECOVERY → OK
   ```
-- [ ] Определение условий:
-  - N последовательных failures
-  - Response time превышает threshold
-  - SSL сертификат истекает через N дней
+- [ ] Defining conditions:
+  - N consecutive failures
+  - Response time exceeds the threshold
+  - SSL certificate expires in N days
 - [ ] Debouncing:
-  - Не отправлять алерт при каждом flap
-  - Grace period перед алертом
+  - Don't send an alert on every flap
+  - Grace period before an alert
   - Recovery notification
-- [ ] Группировка в incidents:
-  - Один incident для серии failures
-  - Tracking времени downtime
+- [ ] Grouping into incidents:
+  - One incident for a series of failures
+  - Tracking downtime
   - Resolution tracking
 
-**Результат:** Умная система алертинга
+**Outcome:** A smart alerting system
 
-### 6.2 Notifier реализации
+### 6.2 Notifier Implementations
 
-**Приоритет 1: Webhook Notifier**
-- [ ] POST запрос на URL
-- [ ] Конфигурируемый payload template
-- [ ] Retry логика
+**Priority 1: Webhook Notifier**
+- [ ] POST request to a URL
+- [ ] Configurable payload template
+- [ ] Retry logic
 - [ ] Custom headers
 
-**Приоритет 2: Email Notifier**
-- [ ] SMTP отправка
-- [ ] HTML templates для писем
-- [ ] Attachment support (графики, опционально)
+**Priority 2: Email Notifier**
+- [ ] SMTP sending
+- [ ] HTML templates for emails
+- [ ] Attachment support (charts, optional)
 
-**Приоритет 3: Telegram Notifier**
-- [ ] Bot API интеграция
-- [ ] Форматированные сообщения
+**Priority 3: Telegram Notifier**
+- [ ] Bot API integration
+- [ ] Formatted messages
 - [ ] Multiple chat IDs
 
-**Опционально:**
+**Optional:**
 - [ ] Slack notifier
 - [ ] Discord notifier
 - [ ] PagerDuty integration
 - [ ] Custom webhook formats (Slack, Discord)
 
-**Результат:** Множественные каналы уведомлений
+**Outcome:** Multiple notification channels
 
 ### 6.3 Alert Routing
 
-**Задачи:**
-- [ ] Разные notifiers для разных targets
+**Tasks:**
+- [ ] Different notifiers for different targets
 - [ ] Severity-based routing:
   - WARNING → email
   - CRITICAL → email + telegram + webhook
-- [ ] Quiet hours (не беспокоить ночью):
-  - Конфигурируемые временные окна
+- [ ] Quiet hours (do not disturb at night):
+  - Configurable time windows
   - Timezone support
-- [ ] Escalation policies (опционально):
-  - Level 1 → email после 5 мин
-  - Level 2 → telegram после 15 мин
-  - Level 3 → phone call после 30 мин
+- [ ] Escalation policies (optional):
+  - Level 1 → email after 5 min
+  - Level 2 → telegram after 15 min
+  - Level 3 → phone call after 30 min
 
-**Результат:** Гибкая система роутинга
+**Outcome:** A flexible routing system
 
 ### 6.4 Alert Templates
 
-**Задачи:**
-- [ ] Template engine для сообщений
-- [ ] Доступные переменные:
+**Tasks:**
+- [ ] Template engine for messages
+- [ ] Available variables:
   - Target name, URL
   - Error message
   - Response time
   - Timestamp
   - Downtime duration
-- [ ] Разные templates для разных событий:
+- [ ] Different templates for different events:
   - DOWN alert
   - RECOVERY alert
   - WARNING alert
   - SSL expiration
 
-**Результат:** Настраиваемые сообщения
+**Outcome:** Customizable messages
 
 ---
 
-## Фаза 7: API Layer
+## Phase 7: API Layer
 
-**Цель:** REST API для управления и данных
+**Goal:** A REST API for management and data
 
 ### 7.1 REST API Endpoints
 
 **Targets Management:**
-- [ ] `GET /api/v1/targets` - список всех targets
-  - Фильтрация по типу, статусу
+- [ ] `GET /api/v1/targets` - list all targets
+  - Filtering by type, status
   - Pagination
   - Sorting
-- [ ] `GET /api/v1/targets/:id` - детали target
-- [ ] `GET /api/v1/targets/:id/status` - текущий статус
-- [ ] `POST /api/v1/targets` - создание (опционально для MVP)
-- [ ] `PUT /api/v1/targets/:id` - обновление
-- [ ] `DELETE /api/v1/targets/:id` - удаление
+- [ ] `GET /api/v1/targets/:id` - target details
+- [ ] `GET /api/v1/targets/:id/status` - current status
+- [ ] `POST /api/v1/targets` - create (optional for MVP)
+- [ ] `PUT /api/v1/targets/:id` - update
+- [ ] `DELETE /api/v1/targets/:id` - delete
 
 **Check History:**
-- [ ] `GET /api/v1/targets/:id/checks` - история проверок
+- [ ] `GET /api/v1/targets/:id/checks` - check history
   - Pagination
   - Date range filtering
   - Success/failure filtering
-- [ ] `GET /api/v1/targets/:id/stats` - статистика
+- [ ] `GET /api/v1/targets/:id/stats` - statistics
   - Uptime percentage
   - Avg response time
   - Success rate
   - Time range (24h, 7d, 30d)
 
 **Incidents:**
-- [ ] `GET /api/v1/incidents` - список incidents
-- [ ] `GET /api/v1/incidents/:id` - детали incident
+- [ ] `GET /api/v1/incidents` - list incidents
+- [ ] `GET /api/v1/incidents/:id` - incident details
 
 **System:**
-- [ ] `GET /api/health` - health check самого монитора
-- [ ] `GET /api/metrics` - метрики системы (Prometheus format опционально)
+- [ ] `GET /api/health` - health check of the monitor itself
+- [ ] `GET /api/metrics` - system metrics (Prometheus format optional)
 
-**Результат:** Полнофункциональный API
+**Outcome:** A fully featured API
 
 ### 7.2 Real-time Updates
 
-**Задачи:**
+**Tasks:**
 - [ ] Server-Sent Events (SSE) endpoint:
-  - `GET /api/v1/events` - stream событий
-- [ ] События для отправки:
+  - `GET /api/v1/events` - event stream
+- [ ] Events to send:
   - Check completed
   - Status changed
   - Alert triggered
   - Alert resolved
 - [ ] Client reconnection handling
-- [ ] Event filtering по target ID
+- [ ] Event filtering by target ID
 
-**Результат:** Real-time уведомления
+**Outcome:** Real-time notifications
 
 ### 7.3 Middleware
 
-**Задачи:**
+**Tasks:**
 - [ ] Logging middleware:
   - Request/response logging
   - Duration tracking
 - [ ] Recovery middleware (panic recovery)
-- [ ] CORS middleware (если нужно)
-- [ ] Rate limiting (опционально)
+- [ ] CORS middleware (if needed)
+- [ ] Rate limiting (optional)
 - [ ] Authentication middleware:
-  - Basic Auth для начала
-  - API keys (опционально)
-  - JWT (для production)
-- [ ] Request ID для трейсинга
+  - Basic Auth to start with
+  - API keys (optional)
+  - JWT (for production)
+- [ ] Request ID for tracing
 
-**Результат:** Production-ready API
+**Outcome:** A production-ready API
 
 ### 7.4 API Documentation
 
-**Задачи:**
-- [ ] OpenAPI/Swagger спецификация
-- [ ] Примеры запросов/ответов
-- [ ] Swagger UI (опционально)
+**Tasks:**
+- [ ] OpenAPI/Swagger specification
+- [ ] Request/response examples
+- [ ] Swagger UI (optional)
 
-**Результат:** Документированный API
+**Outcome:** A documented API
 
 ---
 
-## Фаза 8: Web UI Integration
+## Phase 8: Web UI Integration
 
-**Цель:** Веб-интерфейс для мониторинга
+**Goal:** A web interface for monitoring
 
-### 8.1 Статические файлы
+### 8.1 Static Files
 
-**Задачи:**
-- [ ] Embed HTML/CSS/JS в бинарник (`go:embed`)
-- [ ] Serving статики через HTTP handler
-- [ ] Cache headers для статики
+**Tasks:**
+- [ ] Embed HTML/CSS/JS into the binary (`go:embed`)
+- [ ] Serving static files via an HTTP handler
+- [ ] Cache headers for static files
 - [ ] Compression (gzip)
 
-**Результат:** Single binary deployment
+**Outcome:** Single binary deployment
 
 ### 8.2 Template Rendering
 
-**Задачи:**
+**Tasks:**
 - [ ] HTML templates (`html/template`)
 - [ ] Layout + partials
-- [ ] Передача данных в templates
+- [ ] Passing data into templates
 - [ ] HTMX integration:
   - Partial updates
-  - Auto-refresh списка targets
-  - Inline editing (опционально)
+  - Auto-refresh of the targets list
+  - Inline editing (optional)
 
-**Результат:** Server-side rendering
+**Outcome:** Server-side rendering
 
 ### 8.3 Dashboard Components
 
-**Страницы:**
+**Pages:**
 
 **1. Overview Dashboard:**
-- [ ] Карточки со статистикой:
-  - Всего targets
+- [ ] Cards with statistics:
+  - Total targets
   - Healthy / Unhealthy
   - Active incidents
-- [ ] Список всех targets с текущим статусом
-- [ ] Фильтрация и поиск
-- [ ] Сортировка по статусу, имени, response time
+- [ ] List of all targets with their current status
+- [ ] Filtering and search
+- [ ] Sorting by status, name, response time
 
 **2. Target Detail Page:**
-- [ ] Текущий статус (большой индикатор)
-- [ ] Последние N проверок
-- [ ] График response time (Chart.js)
-- [ ] Uptime за разные периоды (24h, 7d, 30d)
-- [ ] История incidents
-- [ ] Конфигурация target
+- [ ] Current status (large indicator)
+- [ ] Last N checks
+- [ ] Response time chart (Chart.js)
+- [ ] Uptime over different periods (24h, 7d, 30d)
+- [ ] Incident history
+- [ ] Target configuration
 
 **3. Incidents Page:**
-- [ ] Список активных incidents
-- [ ] История resolved incidents
-- [ ] Timeline визуализация
+- [ ] List of active incidents
+- [ ] History of resolved incidents
+- [ ] Timeline visualization
 
-**4. Settings Page (опционально):**
-- [ ] Управление targets (CRUD)
-- [ ] Конфигурация notifiers
-- [ ] Системные настройки
+**4. Settings Page (optional):**
+- [ ] Managing targets (CRUD)
+- [ ] Notifier configuration
+- [ ] System settings
 
-**Результат:** Полнофункциональный UI
+**Outcome:** A fully featured UI
 
-### 8.4 Real-time Updates в UI
+### 8.4 Real-time Updates in the UI
 
-**Задачи:**
-- [ ] SSE connection из браузера
-- [ ] Автообновление статусов без перезагрузки
-- [ ] Уведомления в браузере (опционально)
-- [ ] Visual indicators для изменений
+**Tasks:**
+- [ ] SSE connection from the browser
+- [ ] Auto-updating statuses without a reload
+- [ ] Browser notifications (optional)
+- [ ] Visual indicators for changes
 
-**Результат:** Live dashboard
+**Outcome:** A live dashboard
 
 ### 8.5 Responsive Design
 
-**Задачи:**
+**Tasks:**
 - [ ] Mobile-friendly layout
-- [ ] Адаптивные таблицы
-- [ ] Touch-friendly кнопки
+- [ ] Responsive tables
+- [ ] Touch-friendly buttons
 
-**Результат:** Работает на всех устройствах
+**Outcome:** Works on all devices
 
 ---
 
-## Фаза 9: Observability
+## Phase 9: Observability
 
-**Цель:** Мониторинг самого монитора
+**Goal:** Monitoring the monitor itself
 
 ### 9.1 Internal Metrics
 
-**Задачи:**
-- [ ] Метрики о самой системе:
-  - Количество активных targets
-  - Количество выполняемых проверок
+**Tasks:**
+- [ ] Metrics about the system itself:
+  - Number of active targets
+  - Number of checks being executed
   - Queue depth
   - Worker utilization
-  - БД connection pool usage
+  - DB connection pool usage
   - Memory usage
   - Goroutines count
-- [ ] Prometheus metrics endpoint (опционально):
-  - `GET /metrics` в Prometheus формате
-- [ ] Метрики производительности:
-  - Avg check duration по типам
+- [ ] Prometheus metrics endpoint (optional):
+  - `GET /metrics` in Prometheus format
+- [ ] Performance metrics:
+  - Avg check duration by type
   - P50/P95/P99 response times
   - Error rates
 
-**Результат:** Наблюдаемость системы
+**Outcome:** System observability
 
 ### 9.2 Health Check
 
-**Задачи:**
+**Tasks:**
 - [ ] Endpoint `GET /api/health`
-- [ ] Проверки:
-  - БД connection alive
-  - Scheduler работает
-  - Все workers живы
+- [ ] Checks:
+  - DB connection alive
+  - Scheduler is running
+  - All workers are alive
   - Disk space available
 - [ ] Health status:
-  - `healthy` - все OK
-  - `degraded` - частичные проблемы
-  - `unhealthy` - критические проблемы
-- [ ] Детализация проблем в response
+  - `healthy` - everything OK
+  - `degraded` - partial problems
+  - `unhealthy` - critical problems
+- [ ] Detailed problem breakdown in the response
 
-**Результат:** Self-monitoring
+**Outcome:** Self-monitoring
 
 ### 9.3 Structured Events
 
-**Задачи:**
-- [ ] Event log для важных событий:
+**Tasks:**
+- [ ] Event log for important events:
   - System started/stopped
   - Target added/removed
   - Alert triggered/resolved
   - Configuration reloaded
-- [ ] Audit log (опционально):
+- [ ] Audit log (optional):
   - API calls
   - Configuration changes
   - User actions
 
-**Результат:** Полная история событий
+**Outcome:** A complete history of events
 
 ---
 
-## Фаза 10: Production-Ready Features
+## Phase 10: Production-Ready Features
 
-**Цель:** Подготовка к production использованию
+**Goal:** Preparing for production use
 
 ### 10.1 Graceful Shutdown
 
-**Задачи:**
-- [ ] Обработка сигналов:
+**Tasks:**
+- [ ] Signal handling:
   - SIGTERM
   - SIGINT
 - [ ] Shutdown sequence:
-  1. Остановка приема новых HTTP запросов
-  2. Завершение активных HTTP запросов (с timeout)
-  3. Остановка scheduler (no new checks)
-  4. Завершение активных проверок (с timeout)
-  5. Flush данных в БД
-  6. Закрытие БД connections
-  7. Закрытие notifiers
-- [ ] Graceful timeout (30 секунд по умолчанию)
-- [ ] Логирование shutdown process
+  1. Stop accepting new HTTP requests
+  2. Complete active HTTP requests (with a timeout)
+  3. Stop the scheduler (no new checks)
+  4. Complete active checks (with a timeout)
+  5. Flush data to the database
+  6. Close DB connections
+  7. Close notifiers
+- [ ] Graceful timeout (30 seconds by default)
+- [ ] Logging of the shutdown process
 
-**Результат:** Безопасная остановка
+**Outcome:** A safe shutdown
 
 ### 10.2 Configuration Validation
 
-**Задачи:**
-- [ ] Валидация при старте:
-  - Корректность YAML
-  - Обязательные поля
-  - Валидные интервалы (>0)
-  - Валидные URLs
-- [ ] Validate команда:
+**Tasks:**
+- [ ] Validation at startup:
+  - YAML correctness
+  - Required fields
+  - Valid intervals (>0)
+  - Valid URLs
+- [ ] Validate command:
   - `health-monitor validate config.yaml`
-- [ ] Подробные сообщения об ошибках
+- [ ] Detailed error messages
 
-**Результат:** Предотвращение ошибок конфигурации
+**Outcome:** Prevention of configuration errors
 
 ### 10.3 Data Retention
 
-**Задачи:**
-- [ ] Автоматическая очистка старых данных:
-  - Конфигурируемый retention period
-  - Агрегация старых данных (опционально)
-- [ ] Background job для cleanup
-- [ ] Логирование удаленных записей
+**Tasks:**
+- [ ] Automatic cleanup of old data:
+  - Configurable retention period
+  - Aggregation of old data (optional)
+- [ ] Background job for cleanup
+- [ ] Logging of deleted records
 
-**Результат:** Контроль размера БД
+**Outcome:** Control over database size
 
 ### 10.4 Backup & Restore
 
-**Задачи:**
-- [ ] Backup команда:
+**Tasks:**
+- [ ] Backup command:
   - `health-monitor backup --output backup.db`
-  - Резервное копирование SQLite
-- [ ] Restore команда
-- [ ] Документация процесса
+  - Backing up SQLite
+- [ ] Restore command
+- [ ] Process documentation
 
-**Результат:** Защита данных
+**Outcome:** Data protection
 
 ### 10.5 Security
 
-**Задачи:**
+**Tasks:**
 - [ ] Authentication:
-  - Basic Auth для веб-интерфейса
-  - API keys для API
+  - Basic Auth for the web interface
+  - API keys for the API
 - [ ] HTTPS support:
-  - Конфигурация TLS
-  - Let's Encrypt integration (опционально)
-- [ ] Rate limiting на API
-- [ ] Input validation для всех endpoints
-- [ ] SQL injection prevention (через ORM)
-- [ ] XSS prevention в templates
+  - TLS configuration
+  - Let's Encrypt integration (optional)
+- [ ] Rate limiting on the API
+- [ ] Input validation for all endpoints
+- [ ] SQL injection prevention (via the ORM)
+- [ ] XSS prevention in templates
 
-**Результат:** Безопасное приложение
+**Outcome:** A secure application
 
 ### 10.6 Performance
 
-**Задачи:**
-- [ ] Connection pooling для БД
-- [ ] HTTP client pooling для checkers
-- [ ] Кэширование где возможно:
+**Tasks:**
+- [ ] Connection pooling for the database
+- [ ] HTTP client pooling for checkers
+- [ ] Caching where possible:
   - Static files
-  - Config (в памяти)
-- [ ] Индексы БД
-- [ ] Pagination для больших списков
+  - Config (in memory)
+- [ ] Database indexes
+- [ ] Pagination for large lists
 
-**Результат:** Оптимизированная производительность
+**Outcome:** Optimized performance
 
 ---
 
-## Структура проекта
+## Project Structure
 
-### Финальная структура директорий
+### Final Directory Structure
 
 ```
 health-monitor/
@@ -1023,90 +1023,90 @@ health-monitor/
 
 ---
 
-## Roadmap и приоритеты
+## Roadmap and Priorities
 
-### MVP (Минимально жизнеспособный продукт)
+### MVP (Minimum Viable Product)
 
-**Цель:** Работающий монитор с базовым функционалом
+**Goal:** A working monitor with basic functionality
 
-**Включает:**
+**Includes:**
 - ✅ HTTP checker (status code, response time)
 - ✅ SQLite storage
-- ✅ Простой scheduler (без worker pool)
+- ✅ Simple scheduler (without a worker pool)
 - ✅ Webhook notifier
-- ✅ Базовый REST API (read-only)
-- ✅ Простой веб-интерфейс (список targets + детали)
-- ✅ Конфигурация через YAML
+- ✅ Basic REST API (read-only)
+- ✅ Simple web interface (targets list + details)
+- ✅ Configuration via YAML
 
-**Не включает:**
-- Дополнительные checkers (TCP, DNS, ping)
-- Дополнительные notifiers (email, telegram)
-- CRUD операции в UI
+**Does not include:**
+- Additional checkers (TCP, DNS, ping)
+- Additional notifiers (email, telegram)
+- CRUD operations in the UI
 - Real-time updates
 - Advanced alerting rules
 
-**Срок:** 2-3 недели разработки
+**Timeframe:** 2-3 weeks of development
 
 ---
 
 ### Version 1.0
 
-**Цель:** Production-ready решение
+**Goal:** A production-ready solution
 
-**Добавляет к MVP:**
-- ✅ Worker pool в scheduler
-- ✅ TCP и DNS checkers
-- ✅ Email и Telegram notifiers
+**Adds to the MVP:**
+- ✅ Worker pool in the scheduler
+- ✅ TCP and DNS checkers
+- ✅ Email and Telegram notifiers
 - ✅ Incident management
 - ✅ Real-time updates (SSE)
-- ✅ Улучшенный UI с графиками
+- ✅ Improved UI with charts
 - ✅ Graceful shutdown
 - ✅ Authentication
 - ✅ Metrics endpoint
 
-**Срок:** +2-3 недели после MVP
+**Timeframe:** +2-3 weeks after the MVP
 
 ---
 
 ### Version 1.1
 
-**Цель:** Расширенные возможности
+**Goal:** Extended capabilities
 
-**Добавляет:**
-- ✅ CRUD операции в UI
+**Adds:**
+- ✅ CRUD operations in the UI
 - ✅ PostgreSQL support
 - ✅ SSL certificate monitoring
 - ✅ Advanced alerting rules
-- ✅ Alert routing и escalation
+- ✅ Alert routing and escalation
 - ✅ Data retention policies
 - ✅ Prometheus metrics export
 
-**Срок:** +2 недели после v1.0
+**Timeframe:** +2 weeks after v1.0
 
 ---
 
 ### Version 2.0 (Future)
 
-**Идеи для будущего:**
-- 🔮 Multi-user support с permissions
+**Ideas for the future:**
+- 🔮 Multi-user support with permissions
 - 🔮 Incident timeline visualization
-- 🔮 SLA tracking и reporting
-- 🔮 Status page generation (публичная страница статуса)
+- 🔮 SLA tracking and reporting
+- 🔮 Status page generation (a public status page)
 - 🔮 Distributed monitoring (multiple instances)
-- 🔮 Plugin system для custom checkers
+- 🔮 Plugin system for custom checkers
 - 🔮 Mobile app
-- 🔮 Advanced analytics и ML для anomaly detection
+- 🔮 Advanced analytics and ML for anomaly detection
 
 ---
 
-## Deployment и инфраструктура
+## Deployment and Infrastructure
 
 ### Docker Deployment
 
 **Dockerfile (multi-stage):**
 
 ```dockerfile
-# Концептуальный пример структуры
+# Conceptual example of the structure
 
 # Stage 1: Build
 FROM golang:1.21-alpine AS builder
@@ -1122,7 +1122,7 @@ ENTRYPOINT ["/app/health-monitor"]
 **docker-compose.yml:**
 
 ```yaml
-# Концептуальный пример
+# Conceptual example
 
 version: '3.8'
 services:
@@ -1141,7 +1141,7 @@ services:
 ### Systemd Service
 
 ```ini
-# Пример systemd unit файла
+# Example systemd unit file
 
 [Unit]
 Description=Health Monitor Service
@@ -1158,10 +1158,10 @@ RestartSec=5s
 WantedBy=multi-user.target
 ```
 
-### Kubernetes Deployment (опционально)
+### Kubernetes Deployment (optional)
 
 ```yaml
-# Концептуальный пример
+# Conceptual example
 
 apiVersion: apps/v1
 kind: Deployment
@@ -1185,150 +1185,150 @@ spec:
 
 ---
 
-## Тестирование
+## Testing
 
-### Unit тесты
+### Unit Tests
 
-**Покрытие:**
-- [ ] Все checkers (моки для HTTP клиента)
-- [ ] Storage repositories (in-memory или testcontainers)
+**Coverage:**
+- [ ] All checkers (mocks for the HTTP client)
+- [ ] Storage repositories (in-memory or testcontainers)
 - [ ] Alert manager state machine
-- [ ] Scheduler логика
-- [ ] API handlers (HTTP тесты)
+- [ ] Scheduler logic
+- [ ] API handlers (HTTP tests)
 
-**Инструменты:**
+**Tools:**
 - `testing` package
-- `testify` для assertions
-- `gomock` для моков
-- `httptest` для HTTP тестов
+- `testify` for assertions
+- `gomock` for mocks
+- `httptest` for HTTP tests
 
-### Integration тесты
+### Integration Tests
 
-**Сценарии:**
-- [ ] End-to-end flow: конфиг → проверка → сохранение → алерт
-- [ ] API integration тесты
-- [ ] БД миграции
-- [ ] Real checkers против test servers
+**Scenarios:**
+- [ ] End-to-end flow: config → check → save → alert
+- [ ] API integration tests
+- [ ] DB migrations
+- [ ] Real checkers against test servers
 
-### Load тесты (опционально)
+### Load Tests (optional)
 
-**Проверить:**
-- [ ] Производительность при 1000+ targets
+**Verify:**
+- [ ] Performance with 1000+ targets
 - [ ] Memory leaks
 - [ ] Goroutine leaks
-- [ ] БД performance
+- [ ] DB performance
 
 ---
 
-## Документация
+## Documentation
 
-### Необходимая документация
+### Required Documentation
 
 **README.md:**
-- Описание проекта
+- Project description
 - Quick start guide
 - Installation instructions
 - Basic usage examples
 
 **docs/configuration.md:**
-- Полное описание всех конфигурационных опций
-- Примеры для разных use cases
+- Full description of all configuration options
+- Examples for different use cases
 - Best practices
 
 **docs/api.md:**
-- API endpoints документация
-- Request/response примеры
+- API endpoints documentation
+- Request/response examples
 - Authentication
 
 **docs/architecture.md:**
-- Архитектурная диаграмма
-- Описание компонентов
+- Architecture diagram
+- Description of components
 - Design decisions
 
 **docs/deployment.md:**
 - Docker deployment
 - Systemd setup
 - Kubernetes deployment
-- Backup/restore процедуры
+- Backup/restore procedures
 - Upgrading guide
 
 **CONTRIBUTING.md:**
-- Как добавить новый checker
-- Как добавить новый notifier
+- How to add a new checker
+- How to add a new notifier
 - Code style guide
 - PR process
 
 ---
 
-## Метрики успеха
+## Success Metrics
 
-### Технические метрики
+### Technical Metrics
 
-- ✅ Бинарник <20MB
-- ✅ Memory usage <100MB при 100 targets
-- ✅ Startup time <1 секунды
+- ✅ Binary <20MB
+- ✅ Memory usage <100MB with 100 targets
+- ✅ Startup time <1 second
 - ✅ Check latency overhead <10ms
 - ✅ Test coverage >70%
 
-### Функциональные метрики
+### Functional Metrics
 
-- ✅ Поддержка 1000+ targets одновременно
-- ✅ Check intervals от 10 секунд
-- ✅ Alert latency <30 секунд
-- ✅ 99.9% uptime самого монитора
+- ✅ Support for 1000+ targets simultaneously
+- ✅ Check intervals from 10 seconds
+- ✅ Alert latency <30 seconds
+- ✅ 99.9% uptime of the monitor itself
 - ✅ UI response time <100ms
 
-### UX метрики
+### UX Metrics
 
-- ✅ Setup за <5 минут
-- ✅ Добавление target за <1 минуту
-- ✅ Интуитивный UI (не требует документации)
+- ✅ Setup in <5 minutes
+- ✅ Adding a target in <1 minute
+- ✅ Intuitive UI (requires no documentation)
 - ✅ Mobile-friendly
 
 ---
 
-## Риски и митигации
+## Risks and Mitigations
 
-### Технические риски
+### Technical Risks
 
-**Риск 1: Goroutine leaks при масштабировании**
-- *Митигация:* Регулярное тестирование, proper context usage, pprof monitoring
+**Risk 1: Goroutine leaks when scaling**
+- *Mitigation:* Regular testing, proper context usage, pprof monitoring
 
-**Риск 2: БД bottleneck при большом количестве targets**
-- *Митигация:* Батчинг записей, async writes, индексы, миграция на PostgreSQL
+**Risk 2: DB bottleneck with a large number of targets**
+- *Mitigation:* Batching writes, async writes, indexes, migration to PostgreSQL
 
-**Риск 3: Memory leaks**
-- *Митигация:* Regular profiling, load testing, bounded queues
+**Risk 3: Memory leaks**
+- *Mitigation:* Regular profiling, load testing, bounded queues
 
-**Риск 4: Сложность конфигурации**
-- *Митигация:* Валидация, понятные error messages, примеры конфигов
+**Risk 4: Configuration complexity**
+- *Mitigation:* Validation, clear error messages, example configs
 
-### Бизнес риски
+### Business Risks
 
-**Риск 1: Конкуренция с существующими решениями**
-- *Митигация:* Фокус на простоту и легковесность, self-hosted без ограничений
+**Risk 1: Competition with existing solutions**
+- *Mitigation:* Focus on simplicity and being lightweight, self-hosted without limitations
 
-**Риск 2: Поддержка и maintenance**
-- *Митигация:* Качественная документация, простая архитектура, тесты
-
----
-
-## Заключение
-
-Этот план предоставляет структурированный подход к разработке легковесного, расширяемого монитора на Go. Следование фазам и приоритетам позволит:
-
-1. Быстро получить работающий MVP
-2. Итеративно добавлять функциональность
-3. Поддерживать чистую архитектуру
-4. Легко расширять систему новыми возможностями
-
-### Следующие шаги
-
-1. ✅ Ревью данного плана
-2. ⏳ Создание GitHub репозитория
-3. ⏳ Setup базовой структуры проекта
-4. ⏳ Начало разработки с Фазы 1
+**Risk 2: Support and maintenance**
+- *Mitigation:* High-quality documentation, simple architecture, tests
 
 ---
 
-**Удачи в разработке! 🚀**
+## Conclusion
+
+This plan provides a structured approach to developing a lightweight, extensible monitor in Go. Following the phases and priorities will allow us to:
+
+1. Quickly get a working MVP
+2. Iteratively add functionality
+3. Maintain a clean architecture
+4. Easily extend the system with new capabilities
+
+### Next Steps
+
+1. ✅ Review of this plan
+2. ⏳ Creating the GitHub repository
+3. ⏳ Setting up the basic project structure
+4. ⏳ Starting development from Phase 1
+
+---
+
+**Good luck with the development! 🚀**
