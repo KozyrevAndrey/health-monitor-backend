@@ -126,6 +126,9 @@ func (s *Server) setupRouter() chi.Router {
 		r.Get("/swagger", s.handleSwaggerUI)
 		r.Get("/openapi.yaml", s.handleOpenAPISpec)
 
+		// Per-target incidents (not in OpenAPI spec)
+		r.Get("/api/v1/targets/{id}/incidents", s.handleGetTargetIncidents)
+
 		// Notifier CRUD routes (not in OpenAPI spec)
 		r.Route("/api/v1/notifiers", func(r chi.Router) {
 			r.Get("/", s.handleListNotifiers)

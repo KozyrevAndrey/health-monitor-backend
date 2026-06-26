@@ -194,9 +194,15 @@ func (s *Server) handleGetTargetStats(w http.ResponseWriter, r *http.Request) {
 
 	period := 24 * time.Hour
 	if p := r.URL.Query().Get("period"); p != "" {
-		if parsed, err := time.ParseDuration(p); err == nil {
-			period = parsed
+		// NOTE: Go's time.ParseDuration does not understand "d"; callers must
+		// use hours (e.g. 168h for 7d, 720h for 30d). Reject bad input rather
+		// than silently falling back to the default and returning wrong data.
+		parsed, err := time.ParseDuration(p)
+		if err != nil || parsed <= 0 {
+			s.respondError(w, http.StatusBadRequest, "Invalid period (use Go duration like 24h, 168h, 720h)", err)
+			return
 		}
+		period = parsed
 	}
 
 	stats, err := s.checkResultRepo.GetStats(ctx, targetID, period)
@@ -206,6 +212,34 @@ func (s *Server) handleGetTargetStats(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.respondJSON(w, http.StatusOK, stats)
+}
+
+// handleGetTargetIncidents returns incidents for a single target, most recent
+// first. Registered as a manual route (not part of the OpenAPI spec).
+func (s *Server) handleGetTargetIncidents(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	targetID := chi.URLParam(r, "id")
+
+	limit := 50
+	offset := 0
+	if l := r.URL.Query().Get("limit"); l != "" {
+		if parsed, err := strconv.Atoi(l); err == nil && parsed > 0 {
+			limit = parsed
+		}
+	}
+	if o := r.URL.Query().Get("offset"); o != "" {
+		if parsed, err := strconv.Atoi(o); err == nil && parsed >= 0 {
+			offset = parsed
+		}
+	}
+
+	incidents, err := s.incidentRepo.ListByTarget(ctx, targetID, limit, offset)
+	if err != nil {
+		s.respondError(w, http.StatusInternalServerError, "Failed to get incidents", err)
+		return
+	}
+
+	s.respondJSON(w, http.StatusOK, incidents)
 }
 
 func (s *Server) handleListResults(w http.ResponseWriter, r *http.Request) {
