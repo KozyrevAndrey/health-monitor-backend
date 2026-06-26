@@ -61,8 +61,14 @@
 - [x] SPA (`web/static/index.html`), vanilla JS, адаптивная вёрстка
 - [x] Stats cards, target cards со статусами, последние инциденты
 - [x] **Полный CRUD targets и notifiers** через UI-модалки (`c274a8d`, `c776017`); per-type поля нотификаторов
-- [x] Auto-refresh **polling каждые 10с** (не SSE), manual refresh
+- [x] **Real-time через SSE** (`GET /api/v1/events`): live-обновление статусов и алертов, fallback-polling 30с ✨
 - [x] Static file server через Chi
+
+### Real-time (SSE)
+- [x] In-process event broker (`internal/events/broker.go`): pub/sub, non-blocking, drop-on-full ✨
+- [x] Публикация `check`/`alert` событий из scheduler и alert manager (nil-safe `SetEventPublisher`)
+- [x] SSE endpoint вне logging/Timeout-группы; снятие write-deadline через `ResponseController`, heartbeat 25с
+- [x] UI на `EventSource` с debounced refresh; проверено: стрим жив >90с (прошёл WriteTimeout 15с и chi Timeout 60с)
 
 ### Data Retention
 - [x] Фоновая очистка (`internal/retention/cleaner.go`): удаление старых check_results и resolved-инцидентов по `RetentionConfig` (`cleanup_interval`), initial sweep при старте, graceful stop по ctx ✨
@@ -77,7 +83,6 @@
 ## ⏳ Not Done (по плану)
 
 - [ ] **Дополнительные чекеры**: ICMP/Ping (есть http.go + tcp.go + dns.go)
-- [ ] **SSE / real-time** (`GET /api/v1/events`) — сейчас UI на polling'е
 - [ ] **Target detail page** с графиками (Chart.js): uptime 24h/7d/30d, история чекетов
 - [ ] **Worker pool** в scheduler (сейчас goroutine-per-target без bounded pool/очереди)
 - [ ] **Prometheus `/metrics`**
@@ -98,11 +103,12 @@
 | Alert Manager (+ hot-reload) | 100% |
 | Notifiers: Telegram(+proxy)/Email/Gmail SA/Gmail OAuth/Webhook | 100% |
 | HTTP API (+ OpenAPI/Swagger, Basic Auth) | 100% |
-| Web Dashboard (полный CRUD, polling) | 95% |
+| Web Dashboard (полный CRUD, SSE real-time) | 100% |
 | Prod deploy (Traefik) | 100% |
 | Data Retention (cleanup job) | 100% |
+| Real-time (SSE) | 100% |
 | Доп. чекеры (ICMP) | 0% |
-| SSE / графики / metrics | 0% |
+| Графики / metrics | 0% |
 
 **Last Updated:** 2026-06-27
 
@@ -110,17 +116,17 @@
 
 ## 🚀 Next Steps (приоритет)
 
-1. **ICMP/Ping checker** (требует привилегий — CAP_NET_RAW)
-2. **SSE real-time** + замена polling'а в UI
-3. **Target detail page** с графиками (Chart.js)
-4. **Worker pool** в scheduler
-5. **Prometheus `/metrics`**, CLI `validate`/`backup`, CI/CD
+1. **Target detail page** с графиками (Chart.js)
+2. **Worker pool** в scheduler
+3. **ICMP/Ping checker** ([backlog](backlog.md) — требует привилегий CAP_NET_RAW)
+4. **Prometheus `/metrics`**, CLI `validate`/`backup`, CI/CD
 
 ---
 
 ## 📚 Docs
 
 - [`docs/checkers.md`](checkers.md) — как использовать HTTP/TCP/DNS проверки (поля config, примеры API/UI, retention)
+- [`docs/backlog.md`](backlog.md) — отложенные задачи (ICMP/Ping и др.)
 
 ## 📝 Notes
 
