@@ -827,6 +827,48 @@
         </div>
     </div>
 
+    <!-- Target Detail Modal -->
+    <div id="targetDetailModal" class="modal">
+        <div class="modal-content" style="max-width: 900px; width: 95%;">
+            <div class="modal-header">
+                <h2 class="modal-title" id="detailTitle">Target</h2>
+                <button class="close-btn" onclick="closeTargetDetail()">&times;</button>
+            </div>
+
+            <div id="detailSubtitle" style="color:#666; margin-bottom:1rem;"></div>
+
+            <div class="btn-group" style="margin-bottom:1rem;">
+                <span class="form-label" style="display:inline; align-self:center;">Period:</span>
+                <button type="button" class="btn btn-small detail-period active" data-period="24h" onclick="setDetailPeriod('24h')">24h</button>
+                <button type="button" class="btn btn-small detail-period" data-period="168h" onclick="setDetailPeriod('168h')">7d</button>
+                <button type="button" class="btn btn-small detail-period" data-period="720h" onclick="setDetailPeriod('720h')">30d</button>
+            </div>
+
+            <div id="detailStats" class="stats-grid" style="margin-bottom:1.5rem;"></div>
+
+            <div class="section" style="margin-bottom:1.5rem;">
+                <div class="section-header"><h3 class="section-title" style="font-size:1.1rem;">Response time — last 100 checks</h3></div>
+                <div style="position:relative; height:260px;"><canvas id="detailChart"></canvas></div>
+            </div>
+
+            <div class="section" style="margin-bottom:1.5rem;">
+                <div class="section-header"><h3 class="section-title" style="font-size:1.1rem;">Recent checks</h3></div>
+                <div id="detailChecks" style="max-height:240px; overflow:auto;"></div>
+            </div>
+
+            <div class="section" style="margin-bottom:1.5rem;">
+                <div class="section-header"><h3 class="section-title" style="font-size:1.1rem;">Incidents</h3></div>
+                <div id="detailIncidents"></div>
+            </div>
+
+            <div class="section">
+                <div class="section-header"><h3 class="section-title" style="font-size:1.1rem;">Configuration</h3></div>
+                <pre id="detailConfig" style="background:#f8f9fa; padding:1rem; border-radius:6px; overflow:auto; font-size:0.85rem;"></pre>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/chart.umd.min.js"></script>
     <script>
         const API_BASE = window.location.origin;
         let autoRefreshInterval;
@@ -1058,6 +1100,7 @@
                                 <div class="target-name">${target.name}</div>
                                 <div class="target-actions">
                                     <span class="status-badge ${statusClass}" data-field="status">${status}</span>
+                                    <button class="btn btn-small" onclick="showTargetDetail('${target.id}')">📊 Details</button>
                                     <button class="btn btn-small" onclick='showEditModal(${JSON.stringify(target).replace(/'/g, "&#39;")})'>✏️ Edit</button>
                                     <button class="btn btn-small btn-danger" onclick="deleteTarget('${target.id}', '${target.name}')">🗑️ Delete</button>
                                 </div>
@@ -1435,6 +1478,149 @@
         });
 
         // ── Refresh ────────────────────────────────────────────────────────────
+
+        // ── Target detail view ─────────────────────────────────────────────
+        let detailState = { targetId: null, target: null, period: '24h' };
+        let detailChartObj = null;
+
+        const statusColor = (s) => s === 'success' ? '#10b981' : s === 'failure' ? '#ef4444' : s === 'warning' ? '#f59e0b' : '#9ca3af';
+        const statusBadgeClass = (s) => s === 'success' ? 'status-success' : s === 'failure' ? 'status-failure' : 'status-unknown';
+
+        async function showTargetDetail(targetId) {
+            try {
+                const target = await fetchAPI(`/api/v1/targets/${targetId}`);
+                detailState = { targetId, target, period: '24h' };
+
+                document.getElementById('detailTitle').textContent = target.name;
+                const tc = target.config || {};
+                const endpoint = target.type === 'tcp' ? `${tc.host || ''}:${tc.port || ''}`
+                               : target.type === 'dns' ? `${tc.record_type || 'A'} ${tc.domain || ''}`
+                               : (tc.url || '—');
+                document.getElementById('detailSubtitle').textContent =
+                    `${target.type.toUpperCase()} · ${endpoint} · interval ${formatDuration(target.interval)} · ${target.enabled ? 'enabled' : 'disabled'}`;
+                document.getElementById('detailConfig').textContent = JSON.stringify(target.config, null, 2);
+
+                // Reset period buttons to 24h
+                document.querySelectorAll('.detail-period').forEach(b =>
+                    b.classList.toggle('active', b.dataset.period === '24h'));
+
+                document.getElementById('targetDetailModal').classList.add('active');
+
+                await Promise.all([loadDetailStats(), loadDetailHistory(), loadDetailIncidents()]);
+            } catch (err) {
+                alert('Failed to load target details: ' + err.message);
+            }
+        }
+
+        function closeTargetDetail() {
+            document.getElementById('targetDetailModal').classList.remove('active');
+            if (detailChartObj) { detailChartObj.destroy(); detailChartObj = null; }
+            detailState = { targetId: null, target: null, period: '24h' };
+        }
+
+        async function setDetailPeriod(period) {
+            detailState.period = period;
+            document.querySelectorAll('.detail-period').forEach(b =>
+                b.classList.toggle('active', b.dataset.period === period));
+            await loadDetailStats(); // only the stat cards are period-dependent
+        }
+
+        function statCard(label, value, cls) {
+            return `<div class="stat-card"><div class="stat-value ${cls || ''}">${value}</div><div class="stat-label">${label}</div></div>`;
+        }
+
+        async function loadDetailStats() {
+            const el = document.getElementById('detailStats');
+            try {
+                const s = await fetchAPI(`/api/v1/targets/${detailState.targetId}/stats?period=${detailState.period}`);
+                const uptime = (s.uptime_percentage ?? 0).toFixed(2);
+                const uptimeCls = uptime >= 99 ? 'stat-success' : uptime >= 90 ? 'stat-warning' : 'stat-danger';
+                el.innerHTML =
+                    statCard('Uptime', `${uptime}%`, uptimeCls) +
+                    statCard('Total checks', s.total_checks ?? 0, 'stat-info') +
+                    statCard('Failed', s.failed_checks ?? 0, (s.failed_checks ? 'stat-danger' : '')) +
+                    statCard('Avg response', `${Math.round(s.avg_response_time_ms ?? 0)}ms`, 'stat-info') +
+                    statCard('Min / Max', `${s.min_response_time_ms ?? 0} / ${s.max_response_time_ms ?? 0}ms`, '') +
+                    statCard('Consecutive fails', s.consecutive_failures ?? 0, (s.consecutive_failures ? 'stat-danger' : ''));
+            } catch (err) {
+                el.innerHTML = `<div class="empty-state"><p>Failed to load stats: ${err.message}</p></div>`;
+            }
+        }
+
+        // Chart + checks table share one fetch (last 100 checks, not period-aligned).
+        async function loadDetailHistory() {
+            let results = [];
+            try {
+                results = await fetchAPI(`/api/v1/targets/${detailState.targetId}/results?limit=100`) || [];
+            } catch (err) {
+                document.getElementById('detailChecks').innerHTML = `<div class="empty-state"><p>Failed: ${err.message}</p></div>`;
+                return;
+            }
+            renderDetailChart(results);
+            renderDetailChecks(results);
+        }
+
+        function renderDetailChart(results) {
+            const chrono = [...results].reverse(); // API returns newest-first
+            const labels = chrono.map(r => new Date(r.checked_at).toLocaleTimeString());
+            const data = chrono.map(r => r.response_time_ms);
+            const colors = chrono.map(r => statusColor(r.status));
+
+            if (detailChartObj) { detailChartObj.destroy(); detailChartObj = null; }
+            const ctx = document.getElementById('detailChart').getContext('2d');
+            detailChartObj = new Chart(ctx, {
+                type: 'line',
+                data: { labels, datasets: [{
+                    label: 'Response time (ms)',
+                    data,
+                    borderColor: '#667eea',
+                    backgroundColor: 'rgba(102,126,234,0.1)',
+                    fill: true, tension: 0.2,
+                    pointRadius: 3, pointBackgroundColor: colors, pointBorderColor: colors,
+                }] },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: true, title: { display: true, text: 'ms' } },
+                              x: { ticks: { maxTicksLimit: 10, autoSkip: true } } },
+                    plugins: { legend: { display: false } },
+                },
+            });
+        }
+
+        function renderDetailChecks(results) {
+            const el = document.getElementById('detailChecks');
+            if (!results.length) { el.innerHTML = `<div class="empty-state"><p>No checks yet</p></div>`; return; }
+            el.innerHTML = results.slice(0, 25).map(r => `
+                <div class="info-item" style="display:flex; gap:0.75rem; align-items:center; padding:0.4rem 0; border-bottom:1px solid #f0f0f0;">
+                    <span style="color:#888; min-width:160px;">${new Date(r.checked_at).toLocaleString()}</span>
+                    <span class="status-badge ${statusBadgeClass(r.status)}">${r.status}</span>
+                    <span style="min-width:60px;">${r.response_time_ms}ms</span>
+                    <span style="color:#666; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${(r.error || r.message || '').replace(/</g,'&lt;')}</span>
+                </div>`).join('');
+        }
+
+        async function loadDetailIncidents() {
+            const el = document.getElementById('detailIncidents');
+            try {
+                const incidents = await fetchAPI(`/api/v1/targets/${detailState.targetId}/incidents?limit=20`) || [];
+                if (!incidents.length) { el.innerHTML = `<div class="empty-state"><p>No incidents 🎉</p></div>`; return; }
+                el.innerHTML = incidents.map(i => {
+                    const ongoing = i.status === 'ongoing';
+                    const dur = i.duration ? formatDuration(i.duration) : (ongoing ? 'ongoing' : '—');
+                    return `<div class="incident-card ${ongoing ? 'incident-ongoing' : 'incident-resolved'}">
+                        <div><strong>${ongoing ? '🔴 Ongoing' : '🟢 Resolved'}</strong> · ${i.severity || ''} · ${i.failure_count || 0} failures · ${dur}</div>
+                        <div style="color:#888; font-size:0.85rem;">Started ${new Date(i.started_at).toLocaleString()}</div>
+                        ${i.last_error ? `<div style="color:#666; font-size:0.85rem;">${i.last_error.replace(/</g,'&lt;')}</div>` : ''}
+                    </div>`;
+                }).join('');
+            } catch (err) {
+                el.innerHTML = `<div class="empty-state"><p>Failed to load incidents: ${err.message}</p></div>`;
+            }
+        }
+
+        document.getElementById('targetDetailModal').addEventListener('click', (e) => {
+            if (e.target.id === 'targetDetailModal') closeTargetDetail();
+        });
 
         async function refreshData() {
             const stats = await loadTargets();

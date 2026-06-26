@@ -62,6 +62,7 @@
 - [x] Stats cards, target cards со статусами, последние инциденты
 - [x] **Полный CRUD targets и notifiers** через UI-модалки (`c274a8d`, `c776017`); per-type поля нотификаторов
 - [x] **Real-time через SSE** (`GET /api/v1/events`): live-обновление статусов и алертов, fallback-polling 30с ✨
+- [x] **Target detail modal** с графиком response time (Chart.js, self-hosted), stat-карточками с переключением периода (24h/7d/30d), таблицей последних проверок, инцидентами таргета и конфигом ✨
 - [x] Static file server через Chi
 
 ### Real-time (SSE)
@@ -84,7 +85,6 @@
 ## ⏳ Not Done (по плану)
 
 - [ ] **Дополнительные чекеры**: ICMP/Ping (есть http.go + tcp.go + dns.go)
-- [ ] **Target detail page** с графиками (Chart.js): uptime 24h/7d/30d, история чекетов
 - [ ] **Worker pool** в scheduler (сейчас goroutine-per-target без bounded pool/очереди)
 - [ ] **Prometheus `/metrics`**
 - [ ] **CLI**: `validate`, `backup`/`restore`
@@ -109,7 +109,8 @@
 | Data Retention (cleanup job) | 100% |
 | Real-time (SSE) | 100% |
 | Доп. чекеры (ICMP) | 0% |
-| Графики / metrics | 0% |
+| Графики (target detail, Chart.js) | 100% |
+| Prometheus metrics | 0% |
 
 **Last Updated:** 2026-06-27
 
@@ -117,10 +118,10 @@
 
 ## 🚀 Next Steps (приоритет)
 
-1. **Target detail page** с графиками (Chart.js)
-2. **Worker pool** в scheduler
+1. **Worker pool** в scheduler
+2. **Prometheus `/metrics`**
 3. **ICMP/Ping checker** ([backlog](backlog.md) — требует привилегий CAP_NET_RAW)
-4. **Prometheus `/metrics`**, CLI `validate`/`backup`, CI/CD
+4. CLI `validate`/`backup`, CI/CD
 
 ---
 
