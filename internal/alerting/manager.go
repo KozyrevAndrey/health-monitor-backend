@@ -9,17 +9,25 @@ import (
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 	"health-monitor/internal/domain"
+	"health-monitor/internal/events"
 )
 
 type Manager struct {
 	targetRepo      domain.TargetRepository
 	checkResultRepo domain.CheckResultRepository
 	incidentRepo    domain.IncidentRepository
+	publisher       events.Publisher
 	log             zerolog.Logger
 
 	mu        sync.RWMutex
 	notifiers map[string]domain.Notifier
 	states    map[string]*targetState
+}
+
+// SetEventPublisher attaches an event publisher so created alerts are broadcast
+// in real time. Safe to leave unset (publishing becomes a no-op).
+func (m *Manager) SetEventPublisher(p events.Publisher) {
+	m.publisher = p
 }
 
 type targetState struct {
@@ -258,6 +266,10 @@ func (m *Manager) CreateAlert(ctx context.Context, alert *domain.Alert) error {
 		Str("type", string(alert.Type)).
 		Str("severity", string(alert.Severity)).
 		Msg("Alert created")
+
+	if m.publisher != nil {
+		m.publisher.Publish(events.Event{Type: "alert", Data: alert})
+	}
 
 	m.mu.RLock()
 	notifiers := make([]domain.Notifier, 0, len(m.notifiers))

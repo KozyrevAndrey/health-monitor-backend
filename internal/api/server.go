@@ -11,6 +11,7 @@ import (
 	"github.com/go-chi/cors"
 	"github.com/rs/zerolog"
 	"health-monitor/internal/domain"
+	"health-monitor/internal/events"
 	"health-monitor/internal/generated"
 	"health-monitor/pkg/config"
 )
@@ -24,10 +25,16 @@ type Server struct {
 	notifierRepo    domain.NotifierRepository
 	alertManager    domain.AlertManager
 	scheduler       domain.Scheduler
+	eventBroker     *events.Broker
 	log             zerolog.Logger
 	enableAuth      bool
 	basicAuthUser   string
 	basicAuthPass   string
+}
+
+// SetEventBroker attaches the broker used by the SSE /api/v1/events endpoint.
+func (s *Server) SetEventBroker(b *events.Broker) {
+	s.eventBroker = b
 }
 
 func NewServer(
@@ -80,11 +87,14 @@ func (s *Server) basicAuthMiddleware(next http.Handler) http.Handler {
 func (s *Server) setupRouter() chi.Router {
 	r := chi.NewRouter()
 
+	// Common middleware applied to every route. NOTE: neither the logging
+	// wrapper nor a request Timeout is here — both break long-lived SSE
+	// connections (the logging wrapper can prevent clearing the write
+	// deadline; Timeout would close the stream after 60s and mask client
+	// disconnect). They are applied to the grouped routes below instead.
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
-	r.Use(s.loggingMiddleware)
 	r.Use(middleware.Recoverer)
-	r.Use(middleware.Timeout(60 * time.Second))
 
 	if s.enableAuth {
 		r.Use(s.basicAuthMiddleware)
@@ -99,28 +109,37 @@ func (s *Server) setupRouter() chi.Router {
 		MaxAge:           300,
 	}))
 
-	// Web UI and static files
-	r.Get("/", s.handleIndex)
-	fileServer := http.FileServer(http.Dir("./web/static"))
-	r.Handle("/static/*", http.StripPrefix("/static", fileServer))
+	// Server-Sent Events stream — must stay outside the logging/Timeout group.
+	r.Get("/api/v1/events", s.handleEvents)
 
-	// Swagger UI - serves interactive API documentation
-	r.Get("/swagger", s.handleSwaggerUI)
-	r.Get("/openapi.yaml", s.handleOpenAPISpec)
+	// All other routes get request logging and a 60s timeout.
+	r.Group(func(r chi.Router) {
+		r.Use(s.loggingMiddleware)
+		r.Use(middleware.Timeout(60 * time.Second))
 
-	// Notifier CRUD routes (not in OpenAPI spec)
-	r.Route("/api/v1/notifiers", func(r chi.Router) {
-		r.Get("/", s.handleListNotifiers)
-		r.Post("/", s.handleCreateNotifier)
-		r.Get("/{id}", s.handleGetNotifier)
-		r.Put("/{id}", s.handleUpdateNotifier)
-		r.Delete("/{id}", s.handleDeleteNotifier)
+		// Web UI and static files
+		r.Get("/", s.handleIndex)
+		fileServer := http.FileServer(http.Dir("./web/static"))
+		r.Handle("/static/*", http.StripPrefix("/static", fileServer))
+
+		// Swagger UI - serves interactive API documentation
+		r.Get("/swagger", s.handleSwaggerUI)
+		r.Get("/openapi.yaml", s.handleOpenAPISpec)
+
+		// Notifier CRUD routes (not in OpenAPI spec)
+		r.Route("/api/v1/notifiers", func(r chi.Router) {
+			r.Get("/", s.handleListNotifiers)
+			r.Post("/", s.handleCreateNotifier)
+			r.Get("/{id}", s.handleGetNotifier)
+			r.Put("/{id}", s.handleUpdateNotifier)
+			r.Delete("/{id}", s.handleDeleteNotifier)
+		})
+
+		// Create OpenAPI adapter and register all API routes automatically
+		// This replaces manual route registration with generated routes from openapi.yaml
+		adapter := NewOpenAPIAdapter(s)
+		generated.HandlerFromMux(adapter, r)
 	})
-
-	// Create OpenAPI adapter and register all API routes automatically
-	// This replaces manual route registration with generated routes from openapi.yaml
-	adapter := NewOpenAPIAdapter(s)
-	generated.HandlerFromMux(adapter, r)
 
 	return r
 }

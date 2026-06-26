@@ -13,6 +13,7 @@ import (
 	"health-monitor/internal/api"
 	"health-monitor/internal/checker"
 	"health-monitor/internal/domain"
+	"health-monitor/internal/events"
 	"health-monitor/internal/notifier"
 	"health-monitor/internal/retention"
 	"health-monitor/internal/scheduler"
@@ -116,7 +117,10 @@ func run(ctx context.Context, cfg *config.Config, log zerolog.Logger) error {
 		Interface("types", checkerRegistry.List()).
 		Msg("Checker registry initialized")
 
+	eventBroker := events.NewBroker()
+
 	alertManager := alerting.NewManager(targetRepo, checkResultRepo, incidentRepo, log)
+	alertManager.SetEventPublisher(eventBroker)
 	log.Info().Msg("Alert manager initialized")
 
 	if err := loadNotifiersFromDB(ctx, notifierRepo, alertManager, log); err != nil {
@@ -124,6 +128,7 @@ func run(ctx context.Context, cfg *config.Config, log zerolog.Logger) error {
 	}
 
 	sched := scheduler.New(checkerRegistry, checkResultRepo, alertManager, log)
+	sched.SetEventPublisher(eventBroker)
 
 	if err := sched.Start(ctx); err != nil {
 		return fmt.Errorf("failed to start scheduler: %w", err)
@@ -157,6 +162,7 @@ func run(ctx context.Context, cfg *config.Config, log zerolog.Logger) error {
 	retention.New(checkResultRepo, incidentRepo, cfg.Retention, log).Start(ctx)
 
 	apiServer := api.NewServer(cfg.Server, targetRepo, checkResultRepo, incidentRepo, notifierRepo, alertManager, sched, log)
+	apiServer.SetEventBroker(eventBroker)
 
 	go func() {
 		if err := apiServer.Start(); err != nil {

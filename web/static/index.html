@@ -830,6 +830,8 @@
     <script>
         const API_BASE = window.location.origin;
         let autoRefreshInterval;
+        let eventStream = null;
+        let refreshDebounce = null;
         let editingTargetId = null;
 
         async function fetchAPI(endpoint, options = {}) {
@@ -1442,15 +1444,33 @@
             document.getElementById('last-updated').textContent = new Date().toLocaleTimeString();
         }
 
+        // Coalesce bursts of events (many targets checked at once) into one refresh.
+        function scheduleRefresh() {
+            if (refreshDebounce) return;
+            refreshDebounce = setTimeout(() => { refreshDebounce = null; refreshData(); }, 800);
+        }
+
+        // Live updates via Server-Sent Events. EventSource auto-reconnects on
+        // drop; the periodic poll below is a fallback if the stream is down.
+        function connectEventStream() {
+            try {
+                eventStream = new EventSource('/api/v1/events');
+                eventStream.addEventListener('check', scheduleRefresh);
+                eventStream.addEventListener('alert', scheduleRefresh);
+            } catch (e) {
+                console.warn('SSE unavailable, relying on polling', e);
+            }
+        }
+
         window.addEventListener('DOMContentLoaded', () => {
             refreshData();
+            connectEventStream();
             autoRefreshInterval = setInterval(refreshData, 30000);
         });
 
         window.addEventListener('beforeunload', () => {
-            if (autoRefreshInterval) {
-                clearInterval(autoRefreshInterval);
-            }
+            if (autoRefreshInterval) clearInterval(autoRefreshInterval);
+            if (eventStream) eventStream.close();
         });
 
         document.getElementById('targetModal').addEventListener('click', (e) => {

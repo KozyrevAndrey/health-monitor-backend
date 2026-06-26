@@ -8,18 +8,26 @@ import (
 
 	"github.com/rs/zerolog"
 	"health-monitor/internal/domain"
+	"health-monitor/internal/events"
 )
 
 type Scheduler struct {
 	checkerRegistry domain.CheckerRegistry
 	checkResultRepo domain.CheckResultRepository
 	alertManager    domain.AlertManager
+	publisher       events.Publisher
 	log             zerolog.Logger
 
 	mu      sync.RWMutex
 	tasks   map[string]*task
 	running bool
 	wg      sync.WaitGroup
+}
+
+// SetEventPublisher attaches an event publisher so completed checks are
+// broadcast in real time. Safe to leave unset (publishing becomes a no-op).
+func (s *Scheduler) SetEventPublisher(p events.Publisher) {
+	s.publisher = p
 }
 
 type task struct {
@@ -215,6 +223,20 @@ func (s *Scheduler) performCheck(ctx context.Context, target *domain.Target, che
 				Str("target_id", target.ID).
 				Msg("Failed to process check result in alert manager")
 		}
+	}
+
+	if s.publisher != nil {
+		s.publisher.Publish(events.Event{
+			Type: "check",
+			Data: map[string]interface{}{
+				"target_id":        result.TargetID,
+				"target_name":      target.Name,
+				"status":           result.Status,
+				"response_time_ms": result.ResponseTimeMs,
+				"message":          result.Message,
+				"checked_at":       result.CheckedAt,
+			},
+		})
 	}
 
 	s.log.Info().
