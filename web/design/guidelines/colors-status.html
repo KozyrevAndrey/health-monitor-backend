@@ -1,0 +1,28 @@
+<!-- @dsCard group="Colors" viewport="700x170" name="Semantic status palette" subtitle="One palette drives badges, ticks, charts, toasts, heroes" -->
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="../styles.css">
+<style>
+  body { display: flex; gap: 8px; padding: 16px; }
+  .col { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+  .chip { border-radius: var(--radius-md); padding: 10px; min-height: 56px; display: flex; flex-direction: column; justify-content: flex-end; }
+  .chip b { font-size: 12px; font-weight: 600; color: var(--text-on-status); }
+  .sub { border-radius: var(--radius-md); border: 1px solid; padding: 6px 10px; font-size: 11px; font-weight: 600; }
+</style></head>
+<body>
+  <div class="col">
+    <div class="chip" style="background: var(--status-up);"><b>--status-up</b></div>
+    <div class="sub" style="background: var(--status-up-subtle); border-color: var(--status-up-border); color: var(--status-up);">subtle + border</div>
+  </div>
+  <div class="col">
+    <div class="chip" style="background: var(--status-down);"><b>--status-down</b></div>
+    <div class="sub" style="background: var(--status-down-subtle); border-color: var(--status-down-border); color: var(--status-down);">subtle + border</div>
+  </div>
+  <div class="col">
+    <div class="chip" style="background: var(--status-degraded);"><b>--status-degraded</b></div>
+    <div class="sub" style="background: var(--status-degraded-subtle); border-color: var(--status-degraded-border); color: var(--status-degraded);">subtle + border</div>
+  </div>
+  <div class="col">
+    <div class="chip" style="background: var(--status-unknown);"><b>--status-unknown</b></div>
+    <div class="sub" style="background: var(--status-unknown-subtle); border-color: var(--status-unknown-border); color: var(--status-unknown);">subtle + border</div>
+  </div>
+</body></html>

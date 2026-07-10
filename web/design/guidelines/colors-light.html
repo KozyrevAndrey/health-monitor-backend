@@ -1,0 +1,15 @@
+<!-- @dsCard group="Colors" viewport="700x140" name="Light theme" subtitle="Secondary theme via [data-theme=light] — same token names" -->
+<!DOCTYPE html>
+<html data-theme="light"><head><meta charset="utf-8"><link rel="stylesheet" href="../styles.css">
+<style>
+  body { display: flex; gap: 8px; padding: 16px; align-items: center; background: var(--bg-0); }
+  .sw { flex: 1; border: 1px solid var(--border-1); border-radius: var(--radius-md); padding: 10px; min-height: 88px; display: flex; flex-direction: column; justify-content: flex-end; gap: 2px; }
+  .sw b { font-size: 12px; font-weight: 600; }
+</style></head>
+<body>
+  <div class="sw" style="background: var(--bg-1);"><b>--bg-1</b></div>
+  <div class="sw" style="background: var(--bg-2);"><b>--bg-2</b></div>
+  <div class="sw" style="background: var(--status-up-subtle); border-color: var(--status-up-border);"><b style="color: var(--status-up);">up</b></div>
+  <div class="sw" style="background: var(--status-down-subtle); border-color: var(--status-down-border);"><b style="color: var(--status-down);">down</b></div>
+  <div class="sw" style="background: var(--accent);"><b style="color: #fff;">accent</b></div>
+</body></html>

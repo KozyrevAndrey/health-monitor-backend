@@ -1,0 +1,48 @@
+/* Health Monitor DS — base resets & element defaults */
+* { box-sizing: border-box; }
+
+html, body { margin: 0; padding: 0; }
+
+body {
+  background: var(--bg-0);
+  color: var(--text-1);
+  font-family: var(--font-sans);
+  font-size: var(--text-md);
+  line-height: var(--leading-normal);
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { color: var(--accent-hover); text-decoration: underline; }
+
+code, pre, kbd { font-family: var(--font-mono); }
+
+:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: var(--radius-sm);
+}
+
+::selection { background: var(--accent-subtle); }
+
+/* metrics: always tabular */
+.num { font-variant-numeric: tabular-nums; font-family: var(--font-mono); }
+
+/* uppercase overline label */
+.overline {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+/* thin scrollbars for dense panels */
+.scroll-thin { scrollbar-width: thin; scrollbar-color: var(--border-2) transparent; }
+.scroll-thin::-webkit-scrollbar { width: 8px; height: 8px; }
+.scroll-thin::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: var(--radius-full); }
+.scroll-thin::-webkit-scrollbar-track { background: transparent; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}

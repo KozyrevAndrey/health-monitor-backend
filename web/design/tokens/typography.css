@@ -1,0 +1,25 @@
+/* Health Monitor DS — typography tokens */
+:root {
+  --font-sans: 'Inter', -apple-system, 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  /* dense-UI scale */
+  --text-xs: 11px;     /* tick labels, overlines */
+  --text-sm: 12px;     /* meta, badges, table captions */
+  --text-md: 13px;     /* base UI text */
+  --text-lg: 14px;     /* card titles, inputs */
+  --text-xl: 16px;     /* section titles */
+  --text-2xl: 20px;    /* panel headers */
+  --text-3xl: 28px;    /* hero, big metrics */
+  --text-4xl: 40px;    /* hero metric (detail uptime %) */
+
+  --leading-tight: 1.2;
+  --leading-normal: 1.45;
+
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  --tracking-caps: 0.06em; /* uppercase overlines */
+}

@@ -1,0 +1,64 @@
+<!-- @dsCard group="Screens" viewport="1440x900" name="Target detail — full page (variant)" subtitle="Drill-down alternative to the slide-over" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Health Monitor — Postgres primary</title>
+<link rel="stylesheet" href="../../styles.css">
+<link rel="stylesheet" href="app.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="data.js"></script>
+<script type="text/babel" src="detail.jsx"></script>
+</head>
+<body>
+<div id="root" data-screen-label="Target detail — full page"></div>
+<script type="text/babel">
+const DS2 = window.HealthMonitorRedesign_502b6f;
+const { Icon, StatusBadge, StatusDot, Button, LiveIndicator } = DS2;
+const dataAll = window.HMData("alarm");
+const target = dataAll.targets.find((t) => t.id === "t3");
+
+function Page() {
+  return (
+    <>
+      <header className="hm-topbar">
+        <span className="hm-brand">
+          <span className="hm-brand-mark"><Icon name="activity" size={15} /></span>
+          Health Monitor
+        </span>
+        <span style={{ flex: 1 }}></span>
+        <LiveIndicator state="live" />
+      </header>
+      <main className="hm-shell" style={{ maxWidth: 880 }}>
+        <nav style={{ margin: "var(--space-4) 0 var(--space-3)" }}>
+          <a href="index.html" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: "var(--text-md)" }}>
+            <Icon name="arrow-left" size={14} />All targets
+          </a>
+        </nav>
+        <div className="hm-hero" data-status="down">
+          <span className="hm-hero-icon"><Icon name="alert-triangle" size={22} /></span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h1 style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              {target.name}
+              <Icon name="server" size={16} style={{ color: "var(--text-3)" }} />
+            </h1>
+            <p className="num">{target.endpoint} · down for 23m · 14 consecutive failures</p>
+          </div>
+          <StatusBadge status="down" />
+          <Button icon={<Icon name="pencil" size={14} />}>Edit</Button>
+        </div>
+        <div style={{ marginTop: "var(--space-4)" }}>
+          <window.TargetDetailBody target={target} incidents={dataAll.incidents} onEdit={() => {}} />
+        </div>
+      </main>
+    </>
+  );
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<Page />);
+</script>
+</body>
+</html>

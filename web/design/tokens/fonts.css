@@ -1,0 +1,4 @@
+/* Health Monitor DS — webfonts.
+   NOTE: production ships self-hosted woff2 with the Go binary; this Google
+   Fonts import is a design-time stand-in for the same families. */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');

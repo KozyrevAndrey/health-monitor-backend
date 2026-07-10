@@ -1,0 +1,102 @@
+/* Health Monitor DS — color tokens. Dark is the primary theme. */
+
+:root {
+  color-scheme: dark;
+
+  /* ---- surfaces (cool blue-black ramp) ---- */
+  --bg-0: #0d1117;            /* page */
+  --bg-1: #161b22;            /* card / panel */
+  --bg-2: #1d2430;            /* raised / hover */
+  --bg-3: #252d3b;            /* active / pressed */
+  --bg-inset: #0a0e13;        /* wells, code blocks */
+  --backdrop: rgba(4, 6, 10, 0.62);
+
+  /* ---- borders ---- */
+  --border-1: #222a36;        /* hairline */
+  --border-2: #303a4a;        /* emphasized / hover */
+
+  /* ---- text ---- */
+  --text-1: #e6edf3;          /* primary */
+  --text-2: #9aa5b5;          /* secondary */
+  --text-3: #6b7686;          /* tertiary (min AA on bg-1 at 12px bold+) */
+  --text-on-accent: #ffffff;
+  --text-on-status: #0d1117;
+
+  /* ---- accent (interactive, focus, links) ---- */
+  --accent: #3b82f6;
+  --accent-hover: #5c95f7;
+  --accent-active: #2e6cd9;
+  --accent-subtle: rgba(59, 130, 246, 0.13);
+  --accent-border: rgba(59, 130, 246, 0.45);
+
+  /* ---- semantic status ---- */
+  --status-up: #3fb950;
+  --status-down: #f85149;
+  --status-degraded: #d29922;
+  --status-unknown: #8b949e;
+
+  --status-up-subtle: rgba(63, 185, 80, 0.13);
+  --status-down-subtle: rgba(248, 81, 73, 0.13);
+  --status-degraded-subtle: rgba(210, 153, 34, 0.14);
+  --status-unknown-subtle: rgba(139, 148, 158, 0.13);
+
+  --status-up-border: rgba(63, 185, 80, 0.4);
+  --status-down-border: rgba(248, 81, 73, 0.45);
+  --status-degraded-border: rgba(210, 153, 34, 0.42);
+  --status-unknown-border: rgba(139, 148, 158, 0.4);
+
+  /* ---- charts ---- */
+  --chart-line: var(--accent);
+  --chart-fill: rgba(59, 130, 246, 0.10);
+  --chart-grid: rgba(154, 165, 181, 0.10);
+
+  /* ---- focus ---- */
+  --focus-ring: 0 0 0 2px var(--bg-0), 0 0 0 4px var(--accent);
+}
+
+/* ---- light theme ---- */
+[data-theme="light"] {
+  color-scheme: light;
+
+  --bg-0: #f6f8fa;
+  --bg-1: #ffffff;
+  --bg-2: #f0f3f6;
+  --bg-3: #e7ebf0;
+  --bg-inset: #eef1f4;
+  --backdrop: rgba(15, 23, 42, 0.42);
+
+  --border-1: #d8dee6;
+  --border-2: #c2cbd6;
+
+  --text-1: #1a2230;
+  --text-2: #57616f;
+  --text-3: #77818f;
+  --text-on-accent: #ffffff;
+  --text-on-status: #ffffff;
+
+  --accent: #2563eb;
+  --accent-hover: #1d54cf;
+  --accent-active: #1747b0;
+  --accent-subtle: rgba(37, 99, 235, 0.09);
+  --accent-border: rgba(37, 99, 235, 0.4);
+
+  --status-up: #1a8f3c;
+  --status-down: #d1322b;
+  --status-degraded: #a16a00;
+  --status-unknown: #6b7686;
+
+  --status-up-subtle: rgba(26, 143, 60, 0.10);
+  --status-down-subtle: rgba(209, 50, 43, 0.10);
+  --status-degraded-subtle: rgba(161, 106, 0, 0.12);
+  --status-unknown-subtle: rgba(107, 118, 134, 0.10);
+
+  --status-up-border: rgba(26, 143, 60, 0.38);
+  --status-down-border: rgba(209, 50, 43, 0.4);
+  --status-degraded-border: rgba(161, 106, 0, 0.38);
+  --status-unknown-border: rgba(107, 118, 134, 0.36);
+
+  --chart-fill: rgba(37, 99, 235, 0.08);
+  --chart-grid: rgba(87, 97, 111, 0.12);
+
+  --focus-ring: 0 0 0 2px var(--bg-1), 0 0 0 4px var(--accent);
+}

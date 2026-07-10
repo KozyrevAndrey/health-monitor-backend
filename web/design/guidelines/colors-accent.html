@@ -1,0 +1,23 @@
+<!-- @dsCard group="Colors" viewport="700x140" name="Accent & text" subtitle="Blue accent for interaction only — status colors do the talking" -->
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="../styles.css">
+<style>
+  body { display: flex; gap: 16px; padding: 16px; align-items: stretch; }
+  .group { flex: 1; display: flex; gap: 8px; }
+  .sw { flex: 1; border-radius: var(--radius-md); padding: 8px; display: flex; align-items: flex-end; min-height: 88px; border: 1px solid var(--border-1); }
+  .sw code { font-size: 10px; }
+  .txt { flex: 1; background: var(--bg-1); border: 1px solid var(--border-1); border-radius: var(--radius-md); padding: 10px 12px; display: flex; flex-direction: column; gap: 4px; justify-content: center; }
+</style></head>
+<body>
+  <div class="group">
+    <div class="sw" style="background: var(--accent);"><code style="color:#fff">--accent</code></div>
+    <div class="sw" style="background: var(--accent-hover);"><code style="color:#fff">hover</code></div>
+    <div class="sw" style="background: var(--accent-active);"><code style="color:#fff">active</code></div>
+    <div class="sw" style="background: var(--accent-subtle);"><code style="color:var(--accent)">subtle</code></div>
+  </div>
+  <div class="txt">
+    <span style="color: var(--text-1); font-weight: 600;">--text-1 · primary content</span>
+    <span style="color: var(--text-2);">--text-2 · secondary, metadata</span>
+    <span style="color: var(--text-3);">--text-3 · tertiary, hints</span>
+  </div>
+</body></html>
