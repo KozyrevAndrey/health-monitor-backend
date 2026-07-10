@@ -35,7 +35,7 @@ go.work
 .DS_Store
 
 # Application specific
-data/
+/data/
 *.db
 *.db-shm
 *.db-wal

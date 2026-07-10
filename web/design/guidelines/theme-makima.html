@@ -1,0 +1,25 @@
+<!-- @dsCard group="Colors" viewport="700x180" name="Theme: Makima (v2)" subtitle="Warm near-black · crimson control accent · ringed-eye gold" -->
+<!DOCTYPE html>
+<html data-theme="makima"><head><meta charset="utf-8"><link rel="stylesheet" href="../styles.css">
+<style>
+  body { display: flex; flex-direction: column; gap: 8px; padding: 16px; background: var(--bg-0); }
+  .row { display: flex; gap: 8px; }
+  .sw { flex: 1; border: 1px solid var(--border-1); border-radius: var(--radius-md); padding: 8px 10px; min-height: 56px; display: flex; flex-direction: column; justify-content: flex-end; gap: 1px; }
+  .sw b { font-size: 11px; font-weight: 600; }
+  .sw code { font-size: 9px; color: var(--text-3); }
+</style></head>
+<body>
+  <div class="row">
+    <div class="sw" style="background: var(--bg-inset);"><b>inset</b></div>
+    <div class="sw" style="background: var(--bg-0);"><b>bg-0</b><code>#131013</code></div>
+    <div class="sw" style="background: var(--bg-1);"><b>bg-1</b></div>
+    <div class="sw" style="background: var(--bg-2);"><b>bg-2</b></div>
+    <div class="sw" style="background: var(--accent);"><b style="color:#fff">accent · control</b><code style="color:rgba(255,255,255,.7)">#c33b47</code></div>
+  </div>
+  <div class="row">
+    <div class="sw" style="background: var(--status-up-subtle); border-color: var(--status-up-border);"><b style="color: var(--status-up);">up · order</b></div>
+    <div class="sw" style="background: var(--status-down-subtle); border-color: var(--status-down-border);"><b style="color: var(--status-down);">down · violence</b></div>
+    <div class="sw" style="background: var(--status-degraded-subtle); border-color: var(--status-degraded-border);"><b style="color: var(--status-degraded);">degraded · gold eye</b></div>
+    <div class="sw" style="background: var(--status-unknown-subtle); border-color: var(--status-unknown-border);"><b style="color: var(--status-unknown);">unknown</b></div>
+  </div>
+</body></html>

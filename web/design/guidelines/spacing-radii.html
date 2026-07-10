@@ -1,0 +1,17 @@
+<!-- @dsCard group="Spacing" viewport="700x150" name="Radii & elevation" subtitle="Border does the elevation work; shadows stay soft" -->
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="../styles.css">
+<style>
+  body { padding: 16px 24px; display: flex; gap: 12px; align-items: center; }
+  .sq { width: 84px; height: 84px; background: var(--bg-1); border: 1px solid var(--border-1); display: flex; align-items: flex-end; padding: 8px; }
+  code { font-size: 10px; color: var(--text-3); }
+</style></head>
+<body>
+  <div class="sq" style="border-radius: var(--radius-sm);"><code>sm·4</code></div>
+  <div class="sq" style="border-radius: var(--radius-md);"><code>md·6</code></div>
+  <div class="sq" style="border-radius: var(--radius-lg);"><code>lg·10</code></div>
+  <div class="sq" style="border-radius: var(--radius-xl);"><code>xl·14</code></div>
+  <div class="sq" style="border-radius: var(--radius-lg); box-shadow: var(--shadow-1);"><code>shadow-1</code></div>
+  <div class="sq" style="border-radius: var(--radius-lg); box-shadow: var(--shadow-2); border-color: var(--border-2);"><code>shadow-2</code></div>
+  <div class="sq" style="border-radius: var(--radius-xl); box-shadow: var(--shadow-overlay); border-color: var(--border-2);"><code>overlay</code></div>
+</body></html>

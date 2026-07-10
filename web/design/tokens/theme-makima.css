@@ -1,0 +1,93 @@
+/* Theme: "Makima" (v2) — control-devil vibe.
+   Warm near-black, crimson control accent, gold ringed-eye degraded tone.
+   Calm, authoritative, slightly unsettling. Same token contract as dark/light. */
+
+[data-theme="makima"] {
+  color-scheme: dark;
+
+  /* warm near-black ramp (dried-blood undertone) */
+  --bg-0: #131013;
+  --bg-1: #1b1619;
+  --bg-2: #251d21;
+  --bg-3: #2f2429;
+  --bg-inset: #0e0b0d;
+  --backdrop: rgba(10, 6, 8, 0.68);
+
+  --border-1: #2e2429;
+  --border-2: #443539;
+
+  --text-1: #ece4e2;
+  --text-2: #a89a99;
+  --text-3: #7a6d6d;
+  --text-on-accent: #ffffff;
+  --text-on-status: #131013;
+
+  /* crimson — control. Interaction, focus, chart line. */
+  --accent: #c33b47;
+  --accent-hover: #d5525c;
+  --accent-active: #a52e39;
+  --accent-subtle: rgba(195, 59, 71, 0.14);
+  --accent-border: rgba(195, 59, 71, 0.48);
+
+  /* status — same semantics, warm-shifted */
+  --status-up: #8fa86b;             /* calm olive-sage: order, obedience */
+  --status-down: #ef4b3f;           /* hot vermillion: violence */
+  --status-degraded: #d9a441;       /* ringed-eye gold */
+  --status-unknown: #8d8085;
+
+  --status-up-subtle: rgba(143, 168, 107, 0.13);
+  --status-down-subtle: rgba(239, 75, 63, 0.13);
+  --status-degraded-subtle: rgba(217, 164, 65, 0.14);
+  --status-unknown-subtle: rgba(141, 128, 133, 0.13);
+
+  --status-up-border: rgba(143, 168, 107, 0.4);
+  --status-down-border: rgba(239, 75, 63, 0.48);
+  --status-degraded-border: rgba(217, 164, 65, 0.42);
+  --status-unknown-border: rgba(141, 128, 133, 0.4);
+
+  --chart-line: var(--accent);
+  --chart-fill: rgba(195, 59, 71, 0.10);
+  --chart-grid: rgba(168, 154, 153, 0.10);
+
+  --focus-ring: 0 0 0 2px var(--bg-0), 0 0 0 4px var(--accent);
+
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-2: 0 4px 14px rgba(0, 0, 0, 0.45);
+  --shadow-overlay: 0 16px 48px rgba(0, 0, 0, 0.65);
+}
+
+/* ---- flourishes (scoped to the theme) ---- */
+
+/* hairline crimson thread across the very top — quiet authority */
+[data-theme="makima"] body::before {
+  content: "";
+  position: fixed; top: 0; left: 0; right: 0; height: 1px; z-index: 60;
+  background: linear-gradient(to right, transparent, var(--accent) 30%, var(--accent) 70%, transparent);
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+/* concentric-ring "control" mark (the ringed eye / scope). Pure CSS circles. */
+[data-theme="makima"] .hm-brand-mark {
+  background: radial-gradient(circle,
+    var(--accent) 0 2px, transparent 2.5px 5px,
+    var(--accent-border) 5px 6px, transparent 6.5px 9px,
+    var(--accent-border) 9px 10px, transparent 10.5px);
+  border-color: var(--accent-border);
+  color: transparent;
+}
+[data-theme="makima"] .hm-brand-mark svg { display: none; }
+
+/* heroes: colder, more command-like */
+[data-theme="makima"] .hm-hero {
+  background: linear-gradient(to right, var(--status-up-subtle), transparent 55%), var(--bg-1);
+}
+[data-theme="makima"] .hm-hero[data-status="down"] {
+  background:
+    linear-gradient(to right, rgba(239, 75, 63, 0.16), transparent 55%),
+    radial-gradient(circle at 100% 0%, rgba(195, 59, 71, 0.08), transparent 40%),
+    var(--bg-1);
+}
+
+/* selection reads as being marked */
+[data-theme="makima"] ::selection { background: rgba(195, 59, 71, 0.35); }
