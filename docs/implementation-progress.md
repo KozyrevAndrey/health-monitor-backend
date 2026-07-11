@@ -107,7 +107,7 @@
 | Scheduler (without worker pool) | 90% |
 | Alert Manager (+ hot-reload) | 100% |
 | Notifiers: Telegram(+proxy)/Email/Gmail SA/Gmail OAuth/Webhook | 100% |
-| HTTP API (+ OpenAPI/Swagger, Basic Auth) | 100% |
+| HTTP API (+ OpenAPI/Swagger, session login) | 100% |
 | Web Dashboard (full CRUD, SSE real-time) | 100% |
 | Prod deploy (Traefik) | 100% |
 | Data Retention (cleanup job) | 100% |

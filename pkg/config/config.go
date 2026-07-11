@@ -21,8 +21,8 @@ type ServerConfig struct {
 	WriteTimeout    time.Duration `mapstructure:"write_timeout"`
 	ShutdownTimeout time.Duration `mapstructure:"shutdown_timeout"`
 	EnableAuth      bool          `mapstructure:"enable_auth"`
-	BasicAuthUser   string        `mapstructure:"basic_auth_user"`
-	BasicAuthPass   string        `mapstructure:"basic_auth_pass"`
+	AuthUser        string        `mapstructure:"auth_user"`
+	AuthPass        string        `mapstructure:"auth_pass"`
 }
 
 // DatabaseConfig represents database configuration
@@ -52,6 +52,10 @@ type RetentionConfig struct {
 func (c *Config) Validate() error {
 	if c.Server.Port < 1 || c.Server.Port > 65535 {
 		return fmt.Errorf("invalid server port: %d", c.Server.Port)
+	}
+
+	if c.Server.EnableAuth && (c.Server.AuthUser == "" || c.Server.AuthPass == "") {
+		return fmt.Errorf("auth_user and auth_pass are required when enable_auth is true")
 	}
 
 	if c.Database.Type == "" {

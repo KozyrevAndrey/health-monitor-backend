@@ -48,7 +48,7 @@ see [`backlog.md`](backlog.md).
 
 ### HTTP API (Phase 8) ✅
 - Chi router, middleware (Request ID, Real IP, logging, recovery, timeout, CORS,
-  **Basic Auth**)
+  **session-based login** — `/login` form + cookie sessions, Basic Auth removed)
 - Targets CRUD + results + stats; Incidents (list/get/ongoing + per-target);
   Notifiers CRUD
 - **`GET /health`** with real probes (DB + scheduler → healthy/degraded/unhealthy)

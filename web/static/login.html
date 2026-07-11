@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign in · Health Monitor</title>
+    <link rel="stylesheet" href="/static/css/tokens.css">
+    <link rel="stylesheet" href="/static/css/app.css">
+    <script>
+        // Apply the saved theme before first paint to avoid a flash.
+        (function () {
+            try {
+                var t = localStorage.getItem('hm-theme');
+                if (t === 'light' || t === 'makima') document.documentElement.setAttribute('data-theme', t);
+            } catch (_) {}
+        })();
+    </script>
+    <style>
+        .hm-login-wrap {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: var(--space-5);
+        }
+        .hm-login-card {
+            width: 100%;
+            max-width: 360px;
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-4);
+            padding: var(--space-6);
+        }
+        .hm-login-brand {
+            justify-content: center;
+        }
+        .hm-login-error {
+            display: none;
+            padding: var(--space-2) var(--space-3);
+            border: 1px solid var(--status-down-border);
+            border-radius: var(--radius-md);
+            background: var(--status-down-subtle);
+            color: var(--status-down);
+            font-size: var(--text-sm);
+        }
+        .hm-login-error[data-visible] { display: block; }
+    </style>
+</head>
+<body>
+    <div class="hm-login-wrap">
+        <form class="hm-card hm-login-card" id="loginForm">
+            <span class="hm-brand hm-login-brand">
+                <span class="hm-brand-mark">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                </span>
+                Health Monitor
+            </span>
+
+            <div class="hm-login-error" id="loginError" role="alert"></div>
+
+            <div class="hm-field">
+                <label class="hm-label" for="username">Username</label>
+                <input class="hm-input" id="username" name="username" autocomplete="username" autofocus required>
+            </div>
+
+            <div class="hm-field">
+                <label class="hm-label" for="password">Password</label>
+                <input class="hm-input" id="password" name="password" type="password" autocomplete="current-password" required>
+            </div>
+
+            <button type="submit" class="hm-btn hm-btn--primary hm-btn--lg" id="loginBtn">Sign in</button>
+        </form>
+    </div>
+
+    <script>
+        const form = document.getElementById('loginForm');
+        const errBox = document.getElementById('loginError');
+        const btn = document.getElementById('loginBtn');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            errBox.removeAttribute('data-visible');
+            btn.disabled = true;
+            try {
+                const res = await fetch('/api/v1/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: document.getElementById('username').value,
+                        password: document.getElementById('password').value,
+                    }),
+                });
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({}));
+                    throw new Error(err.message || 'Sign in failed');
+                }
+                window.location.href = '/';
+            } catch (err) {
+                errBox.textContent = err.message;
+                errBox.setAttribute('data-visible', '');
+                btn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>

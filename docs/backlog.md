@@ -86,7 +86,7 @@ need.
   `health_target_response_ms{…}` → dashboards/alerts in Grafana/Alertmanager.
 
 **How:** `github.com/prometheus/client_golang`, serve `/metrics` (usually outside
-basic auth), increment at the same scheduler/alert-manager points that already
+the login auth), increment at the same scheduler/alert-manager points that already
 emit SSE events.
 
 ---

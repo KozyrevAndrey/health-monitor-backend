@@ -35,6 +35,7 @@ const ICON_PATHS = {
     list: ['M8 6h13', 'M8 12h13', 'M8 18h13', 'M3 6h.01', 'M3 12h.01', 'M3 18h.01'],
     external: ['M14 3h7v7', 'M21 3l-9 9', 'M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h6'],
     refresh: ['M21 12a9 9 0 1 1-2.9-6.6L21 8', 'M21 3v5h-5'],
+    logout: ['M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4', 'm16 17 5-5-5-5', 'M21 12H9'],
 };
 
 function icon(name, size = 16, extra = '') {
@@ -97,6 +98,10 @@ async function fetchAPI(endpoint, options = {}) {
         ...options,
         headers: { 'Content-Type': 'application/json', ...options.headers },
     });
+    if (res.status === 401) {
+        window.location.href = '/login';
+        throw new Error('Session expired');
+    }
     if (!res.ok) {
         const err = await res.json().catch(() => ({ error: res.statusText }));
         throw new Error(err.message || err.error || res.statusText);
@@ -1322,6 +1327,18 @@ function init() {
         const cur = document.documentElement.getAttribute('data-theme') || 'dark';
         applyTheme(THEMES[(THEMES.indexOf(cur) + 1) % THEMES.length]);
     });
+
+    // Show the logout button only when the server actually requires login.
+    fetchAPI('/api/v1/auth/me').then((auth) => {
+        if (!auth?.auth_enabled) return;
+        const btn = document.getElementById('logoutBtn');
+        btn.hidden = false;
+        btn.innerHTML = icon('logout', 15);
+        btn.addEventListener('click', async () => {
+            await fetchAPI('/api/v1/auth/logout', { method: 'POST' }).catch(() => {});
+            window.location.href = '/login';
+        });
+    }).catch(() => {});
 
     applyTheme(document.documentElement.getAttribute('data-theme') || 'dark');
     renderAll();

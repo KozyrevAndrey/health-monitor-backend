@@ -27,10 +27,10 @@ services:
       - HEALTH_MONITOR_LOGGING_LEVEL=info
       - HEALTH_MONITOR_LOGGING_FORMAT=json
       - HEALTH_MONITOR_DATABASE_PATH=/data/health-monitor.db
-      # Optional: enable authentication
+      # Optional: enable authentication (web login form)
       # - HEALTH_MONITOR_SERVER_ENABLE_AUTH=true
-      # - HEALTH_MONITOR_SERVER_BASIC_AUTH_USER=admin
-      # - HEALTH_MONITOR_SERVER_BASIC_AUTH_PASS=password
+      # - HEALTH_MONITOR_SERVER_AUTH_USER=admin
+      # - HEALTH_MONITOR_SERVER_AUTH_PASS=password
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "/app/health-monitor", "--version"]

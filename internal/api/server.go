@@ -29,8 +29,9 @@ type Server struct {
 	dbPinger        pinger
 	log             zerolog.Logger
 	enableAuth      bool
-	basicAuthUser   string
-	basicAuthPass   string
+	authUser        string
+	authPass        string
+	sessions        *sessionStore
 }
 
 // pinger is the minimal dependency the health check needs from the database.
@@ -67,8 +68,9 @@ func NewServer(
 		scheduler:       scheduler,
 		log:             log,
 		enableAuth:      cfg.EnableAuth,
-		basicAuthUser:   cfg.BasicAuthUser,
-		basicAuthPass:   cfg.BasicAuthPass,
+		authUser:        cfg.AuthUser,
+		authPass:        cfg.AuthPass,
+		sessions:        newSessionStore(),
 	}
 
 	s.router = s.setupRouter()
@@ -81,18 +83,6 @@ func NewServer(
 	}
 
 	return s
-}
-
-func (s *Server) basicAuthMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		user, pass, ok := r.BasicAuth()
-		if !ok || user != s.basicAuthUser || pass != s.basicAuthPass {
-			w.Header().Set("WWW-Authenticate", `Basic realm="Health Monitor"`)
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
 }
 
 func (s *Server) setupRouter() chi.Router {
@@ -108,7 +98,7 @@ func (s *Server) setupRouter() chi.Router {
 	r.Use(middleware.Recoverer)
 
 	if s.enableAuth {
-		r.Use(s.basicAuthMiddleware)
+		r.Use(s.sessionAuthMiddleware)
 	}
 
 	r.Use(cors.Handler(cors.Options{
@@ -132,6 +122,12 @@ func (s *Server) setupRouter() chi.Router {
 		r.Get("/", s.handleIndex)
 		fileServer := http.FileServer(http.Dir("./web/static"))
 		r.Handle("/static/*", http.StripPrefix("/static", fileServer))
+
+		// Session-based authentication
+		r.Get("/login", s.handleLoginPage)
+		r.Post("/api/v1/auth/login", s.handleLogin)
+		r.Post("/api/v1/auth/logout", s.handleLogout)
+		r.Get("/api/v1/auth/me", s.handleAuthStatus)
 
 		// Swagger UI - serves interactive API documentation
 		r.Get("/swagger", s.handleSwaggerUI)

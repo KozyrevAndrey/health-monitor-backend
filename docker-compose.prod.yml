@@ -23,8 +23,8 @@ services:
       - HEALTH_MONITOR_LOGGING_FORMAT=json
       - HEALTH_MONITOR_DATABASE_PATH=/data/health-monitor.db
       - HEALTH_MONITOR_SERVER_ENABLE_AUTH=true
-      - HEALTH_MONITOR_SERVER_BASIC_AUTH_USER=${BASIC_AUTH_USER:-admin}
-      - HEALTH_MONITOR_SERVER_BASIC_AUTH_PASS=${BASIC_AUTH_PASS}
+      - HEALTH_MONITOR_SERVER_AUTH_USER=${AUTH_USER:-admin}
+      - HEALTH_MONITOR_SERVER_AUTH_PASS=${AUTH_PASS}
     restart: unless-stopped
     networks:
       - traefik-public
