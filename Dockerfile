@@ -18,8 +18,9 @@ RUN go mod download
 # Copy source code
 COPY . .
 
-# Generate OpenAPI code from specification
-RUN go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@latest && \
+# Generate OpenAPI code from specification.
+# Pinned: v2.8.0+ requires Go >= 1.25 while the builder image is on 1.24.
+RUN go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@v2.7.0 && \
     mkdir -p internal/generated && \
     oapi-codegen -config api/codegen-config.yaml api/openapi.yaml
 
