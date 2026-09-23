@@ -40,7 +40,7 @@ func runCallCommand(args []string) int {
 	text := fs.String("text", "", "What to say; may use {{.TargetName}} (default: the notifier's template)")
 	voice := fs.String("voice", "", "GOLOS (female) or GOLOSM (male)")
 	notifierID := fs.String("notifier", "", "Place the call with a saved notifier's settings (template, voice, phones)")
-	configPath := fs.String("config", "configs/example.yaml", "Path to configuration file, used to find the database")
+	configPath := fs.String("config", defaultCallConfigPath(), "Path to configuration file, used to find the database")
 	targetName := fs.String("target", callDefaultTarget, "Target name substituted into the message")
 	dryRun := fs.Bool("dry-run", false, "Print what would be said and dialled, place no call")
 
@@ -125,6 +125,18 @@ func runCallCommand(args []string) int {
 		fmt.Fprintf(os.Stderr, "\nRejected: %v\n", err)
 		return callExitRejected
 	}
+}
+
+// defaultCallConfigPath picks the config the server itself is running with.
+// In the container it lives at /configs/example.yaml (see the Dockerfile CMD),
+// in a checkout it is relative — so `-notifier` works in both without a flag.
+func defaultCallConfigPath() string {
+	for _, path := range []string{"configs/example.yaml", "/configs/example.yaml"} {
+		if _, err := os.Stat(path); err == nil {
+			return path
+		}
+	}
+	return "configs/example.yaml"
 }
 
 // buildCallConfig merges the saved notifier settings with the flags, so a call
