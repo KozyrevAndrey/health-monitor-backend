@@ -86,6 +86,14 @@ func runCallCommand(args []string) int {
 		Severity:   domain.AlertSeverityCritical,
 		Message:    fmt.Sprintf("Target %s is DOWN", *targetName),
 		CreatedAt:  time.Now(),
+		// Sample values, so a preview of a template that uses them shows what
+		// would actually be said instead of "<no value>".
+		Description: "Unexpected status code: got 502, expected 200",
+		Metadata: map[string]interface{}{
+			"incident_id":   int64(42),
+			"failure_count": 3,
+			"target_type":   "http",
+		},
 	}
 
 	message, err := voiceNotifier.RenderMessage(alert)
