@@ -30,6 +30,11 @@ var (
 )
 
 func main() {
+	// Subcommands come before the server's own flags.
+	if len(os.Args) > 1 && os.Args[1] == "call" {
+		os.Exit(runCallCommand(os.Args[2:]))
+	}
+
 	// Parse command line flags
 	configPath := flag.String("config", "configs/example.yaml", "Path to configuration file")
 	showVersion := flag.Bool("version", false, "Show version information")

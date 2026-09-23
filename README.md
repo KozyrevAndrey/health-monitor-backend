@@ -255,6 +255,28 @@ The API key is never stored in the database: it is read from the
 name with `api_key_env`). A notifier whose variable is unset is rejected on
 save and skipped at startup.
 
+#### Placing a test call
+
+The dashboard has no "send test" button for voice: a call costs money and rings
+a real person. Use the CLI on the machine that holds the key instead:
+
+```bash
+# what would be said, without calling anyone
+health-monitor call -to 79001234567 -text "Проверка {{.TargetName}}" -dry-run
+
+# a real call with a saved notifier's voice and template
+health-monitor call -notifier oncall-phone
+
+# in Docker
+docker compose exec health-monitor /app/health-monitor call -to 79001234567
+```
+
+`-to` and `-text` override the saved settings; `-notifier` reads them from the
+database so the call exercises the exact configuration an incident would use.
+Exit codes: `0` accepted, `2` rejected by the provider, `3` result unknown (the
+call may have gone out — do not simply retry). Test calls are not recorded as
+incidents or notification sends.
+
 ## Development
 
 ### Project Structure

@@ -7,7 +7,8 @@ Where it lives: `internal/domain/policy.go` (delivery policy),
 `internal/alerting/dispatch.go` (incident dispatcher),
 `internal/storage/notification_send_repository.go` (send journal),
 `internal/notifier/smspilot.go` (provider), `internal/notifier/factory.go`
-(one place to register a provider), voice fields in `web/static/js/app.js`.
+(one place to register a provider), voice fields in `web/static/js/app.js`,
+`cmd/server/call.go` (the manual `health-monitor call` command).
 
 Two things changed versus the plan below: the endpoint is overridden through
 the server-side `SMSPILOT_API_URL` variable and a package-internal constructor

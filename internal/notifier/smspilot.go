@@ -382,6 +382,12 @@ func (s *SMSPilotNotifier) call(ctx context.Context, phone, text string) (*smspi
 	return &item, nil
 }
 
+// RenderMessage returns the text that would be spoken for this alert, without
+// placing a call. Used by the manual `call -dry-run` command.
+func (s *SMSPilotNotifier) RenderMessage(alert *domain.Alert) (string, error) {
+	return s.renderMessage(alert)
+}
+
 func (s *SMSPilotNotifier) renderMessage(alert *domain.Alert) (string, error) {
 	var buf bytes.Buffer
 	if err := s.tmpl.Execute(&buf, alert); err != nil {
