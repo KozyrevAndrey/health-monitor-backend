@@ -98,6 +98,13 @@ type Notifier interface {
 	Validate(config map[string]interface{}) error
 }
 
+// ReceiptNotifier is an optional interface for notifiers whose provider returns
+// an identifier worth storing (a call ID, a cost). Notifiers that do not
+// implement it are called through Notify and leave the receipt empty.
+type ReceiptNotifier interface {
+	NotifyWithReceipt(ctx context.Context, alert *Alert) (Receipt, error)
+}
+
 // Scheduler defines the interface for scheduling health checks
 type Scheduler interface {
 	// Start starts the scheduler
@@ -137,6 +144,21 @@ type NotifierRepository interface {
 	Delete(ctx context.Context, id string) error
 }
 
+// NotificationSendRepository defines storage operations for notification sends.
+// It doubles as the dedupe mechanism: Claim fails when the same (incident,
+// notifier, sequence) was already claimed.
+type NotificationSendRepository interface {
+	// Claim inserts a pending send row. It returns ErrSendAlreadyClaimed if one
+	// already exists for the same incident, notifier and sequence.
+	Claim(ctx context.Context, send *NotificationSend) error
+
+	// Complete stores the terminal state of a claimed send
+	Complete(ctx context.Context, send *NotificationSend) error
+
+	// ListByIncident retrieves sends of one notifier for one incident, oldest first
+	ListByIncident(ctx context.Context, incidentID int64, notifierID string) ([]*NotificationSend, error)
+}
+
 // AlertManager defines the interface for managing alerts
 type AlertManager interface {
 	// ProcessCheckResult processes a check result and determines if alerts should be sent
@@ -145,11 +167,13 @@ type AlertManager interface {
 	// CreateAlert creates and sends an alert
 	CreateAlert(ctx context.Context, alert *Alert) error
 
-	// RegisterNotifier registers a notifier
-	RegisterNotifier(notifier Notifier)
+	// RegisterNotifier registers a notifier together with the config it was
+	// built from. The config ID is the registry key, so several channels of the
+	// same type can coexist, and its delivery policy travels with it.
+	RegisterNotifier(cfg *NotifierConfig, notifier Notifier)
 
-	// GetNotifier retrieves a notifier by type
-	GetNotifier(notifierType string) (Notifier, error)
+	// GetNotifier retrieves a notifier by its config ID
+	GetNotifier(notifierID string) (Notifier, error)
 
 	// ClearNotifiers removes all registered notifiers
 	ClearNotifiers()

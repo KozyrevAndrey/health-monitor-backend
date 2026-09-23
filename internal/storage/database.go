@@ -93,6 +93,7 @@ func (d *Database) AutoMigrate() error {
 		&models.CheckResult{},
 		&models.Incident{},
 		&models.NotifierConfig{},
+		&models.NotificationSend{},
 	); err != nil {
 		return fmt.Errorf("auto migration failed: %w", err)
 	}

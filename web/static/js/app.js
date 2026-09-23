@@ -36,6 +36,7 @@ const ICON_PATHS = {
     external: ['M14 3h7v7', 'M21 3l-9 9', 'M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h6'],
     refresh: ['M21 12a9 9 0 1 1-2.9-6.6L21 8', 'M21 3v5h-5'],
     logout: ['M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4', 'm16 17 5-5-5-5', 'M21 12H9'],
+    phone: ['M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.2 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z'],
 };
 
 function icon(name, size = 16, extra = '') {
@@ -590,6 +591,7 @@ const NOTIFIER_META = {
     gmail: { icon: 'mail', label: 'Gmail' },
     gmail_oauth: { icon: 'mail', label: 'Gmail (OAuth)' },
     webhook: { icon: 'link', label: 'Webhook' },
+    smspilot: { icon: 'phone', label: 'Voice call (SMSPILOT)' },
 };
 
 function notifierDetail(n) {
@@ -598,6 +600,7 @@ function notifierDetail(n) {
     if (n.type === 'telegram') return `chat ${(c.chat_ids || []).join(', ')}${c.proxy_url ? ' · proxy' : ''}`;
     if (n.type === 'email') return `${c.smtp_host || ''}:${c.smtp_port || ''} · ${c.from || '—'}`;
     if (n.type === 'webhook') return `${c.method || 'POST'} ${c.url || '—'}`;
+    if (n.type === 'smspilot') return `${(c.phones || []).join(', ') || '—'} · after ${c.min_failures ?? 3} failures`;
     return '';
 }
 
@@ -871,14 +874,14 @@ function fieldHtml({ id, label, value = '', placeholder = '', hint = '', type = 
 }
 
 function setFieldError(panel, id, msg) {
-    const input = panel.querySelector('#' + id);
+    const input = panel.querySelector('#' + id) || panel.querySelector(`[data-taginput="${id}"]`);
     const hint = panel.querySelector(`[data-hint-for="${id}"]`);
     if (!input) return;
     if (msg) {
         input.classList.add('hm-input--invalid');
         input.setAttribute('aria-invalid', 'true');
         if (hint) { hint.className = 'hm-error-text'; hint.innerHTML = `${icon('alert-triangle', 13)}${esc(msg)}`; }
-        input.focus();
+        (input.querySelector('input') || input).focus();
     } else {
         input.classList.remove('hm-input--invalid');
         input.removeAttribute('aria-invalid');
@@ -1071,6 +1074,7 @@ const NOTIFIER_TYPES = [
     { value: 'gmail_oauth', label: 'Gmail OAuth', icon: 'mail', hint: 'Personal account token' },
     { value: 'gmail', label: 'Gmail SA', icon: 'mail', hint: 'Service account + delegation' },
     { value: 'webhook', label: 'Webhook', icon: 'link', hint: 'HTTP request anywhere' },
+    { value: 'smspilot', label: 'Voice call', icon: 'phone', hint: 'SMSPILOT call after N failures' },
 ];
 
 function openNotifierForm(notifier) {
@@ -1146,6 +1150,18 @@ function openNotifierForm(notifier) {
                 + fieldHtml({ id: 'nGmailFrom', label: 'From', value: cc.from || '', placeholder: 'alerts@yourdomain.com', mono: true, required: true })
                 + `<div class="hm-field"><span class="hm-label">To</span>${tagInputHtml('nGmailTo', cc.to || [])}<span class="hm-hint">Enter to add</span></div>`
                 + fieldHtml({ id: 'nGmailImp', label: 'Impersonate user (optional)', value: cc.impersonate_user || '', placeholder: 'user@yourworkspace.com', mono: true, hint: 'Google Workspace only' });
+        } else if (curType === 'smspilot') {
+            el.innerHTML = `<div class="hm-field"><span class="hm-label">Phone numbers</span>${tagInputHtml('nSpPhones', cc.phones || [])}<span class="hm-hint" data-hint-for="nSpPhones">Russian mobile, 79XXXXXXXXX. Enter to add</span></div>`
+                + `<div class="field-cols">
+                    <div class="hm-field"><label class="hm-label" for="nSpVoice">Voice</label>
+                        <select class="hm-select" id="nSpVoice">${[['GOLOS', 'Female'], ['GOLOSM', 'Male']].map(([v, l]) => `<option value="${v}" ${(cc.voice || 'GOLOS') === v ? 'selected' : ''}>${l}</option>`).join('')}</select>
+                    <span class="hm-hint"></span></div>
+                    ${fieldHtml({ id: 'nSpMinFailures', label: 'Call after', value: cc.min_failures ?? 3, type: 'number', hint: 'Consecutive failed checks' })}
+                </div>`
+                + `<div class="hm-field"><label class="hm-label" for="nSpTemplate">Message</label>
+                    <textarea class="hm-textarea" id="nSpTemplate" rows="2" placeholder="Внимание! {{.TargetName}} недоступен.">${esc(cc.message_template || '')}</textarea>
+                    <span class="hm-hint" data-hint-for="nSpTemplate">Spoken out loud. {{.TargetName}} inserts the target name</span></div>`
+                + `<p class="hm-hint">One call per incident, no repeats. The API key is read from <code>SMSPILOT_API_KEY</code> on the server — there is no field for it here.</p>`;
         } else { // webhook
             el.innerHTML = fieldHtml({ id: 'nWhUrl', label: 'URL', value: cc.url || '', placeholder: 'https://hooks.slack.com/services/…', mono: true, required: true })
                 + `<div class="field-cols">
@@ -1209,6 +1225,21 @@ function openNotifierForm(notifier) {
                 to: tagValues(panel, 'nGmailTo'),
                 impersonate_user: val('nGmailImp'),
             };
+        } else if (curType === 'smspilot') {
+            const phones = tagValues(panel, 'nSpPhones');
+            if (!phones.length) { setFieldError(panel, 'nSpPhones', 'At least one phone is required'); return; }
+            const bad = phones.find(p => !/^\+?7\s*9[\d\s]{9,}$/.test(p.trim()));
+            if (bad) { setFieldError(panel, 'nSpPhones', `“${bad}” must look like 79XXXXXXXXX`); return; }
+            const minFailures = parseInt(val('nSpMinFailures'), 10);
+            if (!(minFailures >= 1)) { setFieldError(panel, 'nSpMinFailures', 'Must be at least 1'); return; }
+            config = {
+                phones,
+                voice: panel.querySelector('#nSpVoice').value,
+                min_failures: minFailures,
+                max_sends: 1,
+            };
+            const tmpl = panel.querySelector('#nSpTemplate').value.trim();
+            if (tmpl) config.message_template = tmpl;
         } else {
             if (!val('nWhUrl')) { setFieldError(panel, 'nWhUrl', 'URL is required'); return; }
             config = { url: val('nWhUrl'), method: panel.querySelector('#nWhMethod').value };

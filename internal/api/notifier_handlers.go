@@ -165,7 +165,7 @@ func (s *Server) reloadNotifiers(ctx context.Context) error {
 			continue
 		}
 
-		s.alertManager.RegisterNotifier(n)
+		s.alertManager.RegisterNotifier(cfg, n)
 
 		s.log.Info().
 			Str("id", cfg.ID).
@@ -208,18 +208,5 @@ func maskNotifierConfig(cfg *domain.NotifierConfig) *domain.NotifierConfig {
 
 // buildNotifier creates a domain.Notifier from a NotifierConfig
 func buildNotifier(cfg *domain.NotifierConfig, s *Server) (domain.Notifier, error) {
-	switch cfg.Type {
-	case "email":
-		return notifier.NewEmailNotifier(cfg.Config, s.log)
-	case "telegram":
-		return notifier.NewTelegramNotifier(cfg.Config, s.log)
-	case "gmail":
-		return notifier.NewGmailNotifier(cfg.Config, s.log)
-	case "gmail_oauth":
-		return notifier.NewGmailOAuthNotifier(cfg.Config, s.log)
-	case "webhook":
-		return notifier.NewWebhookNotifier(cfg.Config, s.log)
-	default:
-		return nil, fmt.Errorf("unknown notifier type: %s", cfg.Type)
-	}
+	return notifier.New(cfg, s.log)
 }

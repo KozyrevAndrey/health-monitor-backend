@@ -16,12 +16,22 @@ type Manager struct {
 	targetRepo      domain.TargetRepository
 	checkResultRepo domain.CheckResultRepository
 	incidentRepo    domain.IncidentRepository
+	sendRepo        domain.NotificationSendRepository
 	publisher       events.Publisher
 	log             zerolog.Logger
 
 	mu        sync.RWMutex
-	notifiers map[string]domain.Notifier
+	notifiers map[string]*registeredNotifier
 	states    map[string]*targetState
+}
+
+// registeredNotifier is a notifier plus the config it came from. Entries with a
+// policy are dispatched from the incident state (dispatchIncidentNotifications)
+// and are deliberately excluded from the per-alert fan-out in CreateAlert.
+type registeredNotifier struct {
+	id       string
+	notifier domain.Notifier
+	policy   *domain.DeliveryPolicy
 }
 
 // SetEventPublisher attaches an event publisher so created alerts are broadcast
@@ -30,14 +40,21 @@ func (m *Manager) SetEventPublisher(p events.Publisher) {
 	m.publisher = p
 }
 
+// SetSendRepository attaches the notification send journal. Without it,
+// policy-routed notifiers (voice calls) stay disabled, since the journal is
+// what keeps a single incident from placing repeated calls.
+func (m *Manager) SetSendRepository(repo domain.NotificationSendRepository) {
+	m.sendRepo = repo
+}
+
 type targetState struct {
-	targetID            string
-	consecutiveFailures int
+	targetID             string
+	consecutiveFailures  int
 	consecutiveSuccesses int
-	lastStatus          domain.CheckStatus
-	lastCheckTime       time.Time
-	currentIncidentID   *int64
-	lastAlertTime       map[domain.AlertType]time.Time
+	lastStatus           domain.CheckStatus
+	lastCheckTime        time.Time
+	currentIncidentID    *int64
+	lastAlertTime        map[domain.AlertType]time.Time
 }
 
 func NewManager(
@@ -51,33 +68,58 @@ func NewManager(
 		checkResultRepo: checkResultRepo,
 		incidentRepo:    incidentRepo,
 		log:             log,
-		notifiers:       make(map[string]domain.Notifier),
+		notifiers:       make(map[string]*registeredNotifier),
 		states:          make(map[string]*targetState),
 	}
 }
 
-func (m *Manager) RegisterNotifier(notifier domain.Notifier) {
+func (m *Manager) RegisterNotifier(cfg *domain.NotifierConfig, notifier domain.Notifier) {
+	entry := &registeredNotifier{id: cfg.ID, notifier: notifier}
+
+	if domain.IsPolicyRouted(cfg.Type) {
+		policy, err := domain.ParseDeliveryPolicy(cfg.Config)
+		if err != nil {
+			// Registering it anyway would put it in the per-alert fan-out and
+			// notify on every single failure, which is the opposite of intent.
+			m.log.Error().
+				Err(err).
+				Str("id", cfg.ID).
+				Str("type", cfg.Type).
+				Msg("Invalid delivery policy, notifier not registered")
+			return
+		}
+		entry.policy = &policy
+	}
+
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	m.notifiers[notifier.Type()] = notifier
-	m.log.Info().Str("type", notifier.Type()).Msg("Notifier registered")
+	m.notifiers[cfg.ID] = entry
+
+	event := m.log.Info().Str("id", cfg.ID).Str("type", cfg.Type)
+	if entry.policy != nil {
+		event = event.
+			Int("min_failures", entry.policy.MinFailures).
+			Int("max_sends", entry.policy.MaxSends).
+			Dur("repeat_interval", entry.policy.RepeatInterval)
+	}
+	event.Msg("Notifier registered")
 }
 
-func (m *Manager) GetNotifier(notifierType string) (domain.Notifier, error) {
+func (m *Manager) GetNotifier(notifierID string) (domain.Notifier, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
-	notifier, exists := m.notifiers[notifierType]
+	entry, exists := m.notifiers[notifierID]
 	if !exists {
-		return nil, fmt.Errorf("notifier type %s not found", notifierType)
+		return nil, fmt.Errorf("notifier %s not found", notifierID)
 	}
-	return notifier, nil
+	return entry.notifier, nil
 }
 
 func (m *Manager) ClearNotifiers() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	m.notifiers = make(map[string]domain.Notifier)
+	m.notifiers = make(map[string]*registeredNotifier)
 	m.log.Debug().Msg("All notifiers cleared")
 }
 
@@ -92,6 +134,10 @@ func (m *Manager) ProcessCheckResult(ctx context.Context, result *domain.CheckRe
 		m.states[result.TargetID] = state
 	}
 	m.mu.Unlock()
+
+	if !exists {
+		m.hydrateState(ctx, state)
+	}
 
 	target, err := m.targetRepo.Get(ctx, result.TargetID)
 	if err != nil {
@@ -116,7 +162,37 @@ func (m *Manager) ProcessCheckResult(ctx context.Context, result *domain.CheckRe
 			Msg("Failed to manage incident")
 	}
 
+	m.dispatchIncidentNotifications(ctx, target, state)
+
 	return nil
+}
+
+// hydrateState restores state from the database the first time a target is seen
+// in this process. Without it a restart mid-incident creates a duplicate
+// incident on the next failure and never resolves the old one on recovery.
+func (m *Manager) hydrateState(ctx context.Context, state *targetState) {
+	incident, err := m.incidentRepo.GetOngoing(ctx, state.targetID)
+	if err != nil {
+		m.log.Error().
+			Err(err).
+			Str("target_id", state.targetID).
+			Msg("Failed to load ongoing incident")
+		return
+	}
+
+	if incident == nil {
+		return
+	}
+
+	state.currentIncidentID = &incident.ID
+	state.consecutiveFailures = incident.FailureCount
+	state.lastStatus = domain.CheckStatusFailure
+
+	m.log.Info().
+		Str("target_id", state.targetID).
+		Int64("incident_id", incident.ID).
+		Int("failure_count", incident.FailureCount).
+		Msg("Restored ongoing incident after restart")
 }
 
 func (m *Manager) updateState(state *targetState, result *domain.CheckResult) {
@@ -273,8 +349,14 @@ func (m *Manager) CreateAlert(ctx context.Context, alert *domain.Alert) error {
 
 	m.mu.RLock()
 	notifiers := make([]domain.Notifier, 0, len(m.notifiers))
-	for _, notifier := range m.notifiers {
-		notifiers = append(notifiers, notifier)
+	for _, entry := range m.notifiers {
+		// Policy-routed notifiers fire from the incident state instead, so they
+		// never see per-check alerts (down on the first failure, slow response,
+		// SSL expiry, recovery).
+		if entry.policy != nil {
+			continue
+		}
+		notifiers = append(notifiers, entry.notifier)
 	}
 	m.mu.RUnlock()
 

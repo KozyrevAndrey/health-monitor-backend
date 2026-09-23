@@ -122,6 +122,12 @@ export HEALTH_MONITOR_SERVER_PORT=9090
 export HEALTH_MONITOR_LOGGING_LEVEL=debug
 ```
 
+Secrets that must not live in the database use their own variables:
+
+```bash
+export SMSPILOT_API_KEY=your-smspilot-key   # voice-call notifier
+```
+
 ## Target Types
 
 ### HTTP/HTTPS
@@ -223,6 +229,53 @@ notifiers:
       chat_ids:
         - "-1001234567890"
 ```
+
+### Voice call (SMSPILOT)
+
+Phone call for outages that must wake someone up. Unlike the other channels it
+is dispatched from the incident, not from individual checks: it calls once per
+incident, and only after `min_failures` consecutive failed checks, so a single
+blip or a slow response never rings a phone.
+
+```yaml
+notifiers:
+  - id: "oncall-phone"
+    type: "smspilot"
+    config:
+      phones:
+        - "79001234567"
+      voice: "GOLOS"          # GOLOSM for a male voice
+      min_failures: 3          # consecutive failed checks before calling
+      max_sends: 1             # calls per incident
+      message_template: "Внимание! {{.TargetName}} недоступен."
+```
+
+The API key is never stored in the database: it is read from the
+`SMSPILOT_API_KEY` environment variable on the server (override the variable
+name with `api_key_env`). A notifier whose variable is unset is rejected on
+save and skipped at startup.
+
+#### Placing a test call
+
+The dashboard has no "send test" button for voice: a call costs money and rings
+a real person. Use the CLI on the machine that holds the key instead:
+
+```bash
+# what would be said, without calling anyone
+health-monitor call -to 79001234567 -text "Проверка {{.TargetName}}" -dry-run
+
+# a real call with a saved notifier's voice and template
+health-monitor call -notifier oncall-phone
+
+# in Docker
+docker compose exec health-monitor /app/health-monitor call -to 79001234567
+```
+
+`-to` and `-text` override the saved settings; `-notifier` reads them from the
+database so the call exercises the exact configuration an incident would use.
+Exit codes: `0` accepted, `2` rejected by the provider, `3` result unknown (the
+call may have gone out — do not simply retry). Test calls are not recorded as
+incidents or notification sends.
 
 ## Development
 

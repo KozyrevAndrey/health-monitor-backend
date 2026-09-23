@@ -297,9 +297,9 @@ func TestManager_NotifierRegistration(t *testing.T) {
 		alerts: make([]*domain.Alert, 0),
 	}
 
-	manager.RegisterNotifier(notifier)
+	manager.RegisterNotifier(&domain.NotifierConfig{ID: "mock-1", Type: "mock"}, notifier)
 
-	retrieved, err := manager.GetNotifier("mock")
+	retrieved, err := manager.GetNotifier("mock-1")
 	if err != nil {
 		t.Fatalf("Failed to get notifier: %v", err)
 	}
@@ -319,7 +319,7 @@ func TestManager_AlertCreation(t *testing.T) {
 	notifier := &mockNotifier{
 		alerts: make([]*domain.Alert, 0),
 	}
-	manager.RegisterNotifier(notifier)
+	manager.RegisterNotifier(&domain.NotifierConfig{ID: "mock-1", Type: "mock"}, notifier)
 
 	failureResult := &domain.CheckResult{
 		ID:             1,
@@ -360,7 +360,7 @@ func TestManager_SlowResponseAlert(t *testing.T) {
 	notifier := &mockNotifier{
 		alerts: make([]*domain.Alert, 0),
 	}
-	manager.RegisterNotifier(notifier)
+	manager.RegisterNotifier(&domain.NotifierConfig{ID: "mock-1", Type: "mock"}, notifier)
 
 	slowResult := &domain.CheckResult{
 		ID:             1,
@@ -403,7 +403,7 @@ func TestManager_SSLExpiryAlert(t *testing.T) {
 	notifier := &mockNotifier{
 		alerts: make([]*domain.Alert, 0),
 	}
-	manager.RegisterNotifier(notifier)
+	manager.RegisterNotifier(&domain.NotifierConfig{ID: "mock-1", Type: "mock"}, notifier)
 
 	result := &domain.CheckResult{
 		ID:             1,
