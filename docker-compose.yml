@@ -27,6 +27,8 @@ services:
       - HEALTH_MONITOR_LOGGING_LEVEL=info
       - HEALTH_MONITOR_LOGGING_FORMAT=json
       - HEALTH_MONITOR_DATABASE_PATH=/data/health-monitor.db
+      # Optional: SMSPILOT voice alerts — the API key is never stored in the DB
+      - SMSPILOT_API_KEY=${SMSPILOT_API_KEY:-}
       # Optional: enable authentication (web login form)
       # - HEALTH_MONITOR_SERVER_ENABLE_AUTH=true
       # - HEALTH_MONITOR_SERVER_AUTH_USER=admin

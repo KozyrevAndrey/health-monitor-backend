@@ -109,6 +109,7 @@ func run(ctx context.Context, cfg *config.Config, log zerolog.Logger) error {
 	incidentRepo := storage.NewIncidentRepository(db.DB())
 
 	notifierRepo := storage.NewNotifierRepository(db.DB())
+	sendRepo := storage.NewNotificationSendRepository(db.DB())
 	log.Info().Msg("Storage layer initialized")
 
 	checkerRegistry := checker.NewDefaultRegistry()
@@ -121,6 +122,7 @@ func run(ctx context.Context, cfg *config.Config, log zerolog.Logger) error {
 
 	alertManager := alerting.NewManager(targetRepo, checkResultRepo, incidentRepo, log)
 	alertManager.SetEventPublisher(eventBroker)
+	alertManager.SetSendRepository(sendRepo)
 	log.Info().Msg("Alert manager initialized")
 
 	if err := loadNotifiersFromDB(ctx, notifierRepo, alertManager, log); err != nil {
@@ -211,30 +213,15 @@ func loadNotifiersFromDB(ctx context.Context, repo domain.NotifierRepository, al
 			continue
 		}
 
-		var n domain.Notifier
-
-		switch cfg.Type {
-		case "telegram":
-			n, err = notifier.NewTelegramNotifier(cfg.Config, log)
-		case "email":
-			n, err = notifier.NewEmailNotifier(cfg.Config, log)
-		case "gmail":
-			n, err = notifier.NewGmailNotifier(cfg.Config, log)
-		case "gmail_oauth":
-			n, err = notifier.NewGmailOAuthNotifier(cfg.Config, log)
-		case "webhook":
-			n, err = notifier.NewWebhookNotifier(cfg.Config, log)
-		default:
-			log.Warn().Str("id", cfg.ID).Str("type", cfg.Type).Msg("Unknown notifier type, skipping")
-			continue
-		}
-
+		n, err := notifier.New(cfg, log)
 		if err != nil {
-			log.Error().Err(err).Str("id", cfg.ID).Msg("Failed to create notifier, skipping")
+			// Logged as an error, not a debug line: the channel still shows as
+			// enabled in the dashboard while nothing can be delivered through it.
+			log.Error().Err(err).Str("id", cfg.ID).Str("type", cfg.Type).Msg("Failed to create notifier, skipping")
 			continue
 		}
 
-		alertManager.RegisterNotifier(n)
+		alertManager.RegisterNotifier(cfg, n)
 		enabledCount++
 
 		log.Info().Str("id", cfg.ID).Str("type", cfg.Type).Msg("Notifier registered from database")

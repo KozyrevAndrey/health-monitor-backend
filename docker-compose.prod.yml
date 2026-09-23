@@ -25,6 +25,8 @@ services:
       - HEALTH_MONITOR_SERVER_ENABLE_AUTH=true
       - HEALTH_MONITOR_SERVER_AUTH_USER=${AUTH_USER:-admin}
       - HEALTH_MONITOR_SERVER_AUTH_PASS=${AUTH_PASS}
+      # SMSPILOT voice alerts — the API key is never stored in the DB
+      - SMSPILOT_API_KEY=${SMSPILOT_API_KEY:-}
     restart: unless-stopped
     networks:
       - traefik-public
